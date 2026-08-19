@@ -20,7 +20,7 @@ if not TOKEN_A or not TOKEN_B:
 
 GROUP_IDS_FILE = "group_ids.txt"
 
-# ---------- CONVERSATION PAIRS ----------
+# ---------- CONVERSATION PAIRS (30+ pairs for daily variety) ----------
 CONVERSATION_PAIRS = [
     ("📊 Did you know passive income streams are growing 20% year over year?", 
      "Indeed! And our VIP plan gives you 3.5% daily – that's a game changer."),
@@ -86,6 +86,7 @@ CONVERSATION_PAIRS = [
      "Your money is always accessible. Withdrawal requests are processed swiftly."),
 ]
 
+# ---------- FINAL PROMOTIONAL MESSAGES ----------
 FINAL_CALL_A = (
     "✅ VIP has increased to 3.5% + 3📌\n\n"
     "🪙 REGISTER HERE ⏩⏩ https://app-web.mobiuspe-app.com/regist?code=earnmoney426\n\n"
@@ -128,7 +129,7 @@ async def send_to_groups(context_a, context_b, text_a, text_b=None):
             except Exception as e:
                 logger.error(f"Bot B failed to send to {cid}: {e}")
 
-# ---------- DAILY SESSION ----------
+# ---------- DAILY 1‑HOUR SESSION ----------
 async def daily_session(app_a, app_b, test_mode=False):
     if test_mode:
         min_wait, max_wait = 5, 10
@@ -203,11 +204,11 @@ async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await app_b.bot.send_message(chat_id, FINAL_CALL_B)
     await context.bot.send_message(chat_id, "✅ Test complete! Daily session will run at scheduled time.")
 
-# ---------- MAIN (with robust error handling and auto‑restart) ----------
+# ---------- MAIN (Fixed: Always online, auto‑restart polling) ----------
 async def main():
     global APP_B
     
-    # Build applications
+    # Build applications (once)
     app_a = Application.builder().token(TOKEN_A).build()
     app_b = Application.builder().token(TOKEN_B).build()
     APP_B = app_b
@@ -220,7 +221,7 @@ async def main():
     
     app_a.add_handler(CommandHandler("test", test_handler))
     
-    # Initialize and start apps
+    # Initialize and start apps (once)
     await app_a.initialize()
     await app_b.initialize()
     await app_a.start()
@@ -239,41 +240,38 @@ async def main():
     
     logger.info("Both bots started. Press Ctrl+C to stop.")
     
-    # Keep the bot running with auto‑restart if polling stops unexpectedly
+    # Keep the bots running; restart polling if it stops for any reason
     while True:
         try:
-            # Run polling tasks
+            # Run polling tasks concurrently
             await asyncio.gather(
                 app_a.updater.start_polling(allowed_updates=Update.ALL_TYPES),
                 app_b.updater.start_polling(allowed_updates=Update.ALL_TYPES)
             )
-            # If we get here, polling stopped normally (shouldn't happen)
+            # If we get here, polling stopped unexpectedly (should not happen)
             logger.warning("Polling stopped unexpectedly. Restarting in 5 seconds...")
             await asyncio.sleep(5)
         except asyncio.CancelledError:
-            logger.info("Received cancellation, shutting down...")
+            logger.info("Cancellation received, shutting down...")
             break
         except Exception as e:
             logger.error(f"Polling error: {e}", exc_info=True)
             logger.info("Restarting polling in 10 seconds...")
             await asyncio.sleep(10)
-        finally:
-            # Cleanup on exit
-            logger.info("Stopping polling...")
-            await app_a.updater.stop()
-            await app_b.updater.stop()
-            logger.info("Stopping apps...")
-            await app_a.stop()
-            await app_b.stop()
-            logger.info("Shutting down...")
-            await app_a.shutdown()
-            await app_b.shutdown()
-            logger.info("Shutdown complete.")
-            # If we're not cancelled, restart the loop (unless we broke)
-            if not asyncio.CancelledError:
-                continue
-            else:
-                break
+            # Continue the loop to restart polling (apps are still alive)
+            continue
+    
+    # --- Clean shutdown (only reached if we break out of the loop) ---
+    logger.info("Stopping polling...")
+    await app_a.updater.stop()
+    await app_b.updater.stop()
+    logger.info("Stopping apps...")
+    await app_a.stop()
+    await app_b.stop()
+    logger.info("Shutting down...")
+    await app_a.shutdown()
+    await app_b.shutdown()
+    logger.info("Shutdown complete.")
 
 if __name__ == "__main__":
     try:
