@@ -20,103 +20,72 @@ if not TOKEN_A or not TOKEN_B:
 
 GROUP_IDS_FILE = "group_ids.txt"
 
-# ---------- CONVERSATION PAIRS (Bot A speaks, Bot B replies) ----------
+# ---------- CONVERSATION PAIRS ----------
 CONVERSATION_PAIRS = [
     ("📊 Did you know passive income streams are growing 20% year over year?", 
      "Indeed! And our VIP plan gives you 3.5% daily – that's a game changer."),
-    
     ("💡 The best time to start earning in crypto was yesterday, but the second best is today.", 
      "Exactly – every day you wait is lost profit. Join now and start compounding."),
-    
     ("👥 Team leaders earn significantly more than solo players.", 
      "Yes, building a downline multiplies your rewards. We offer up to 0.6% team commission."),
-    
     ("📈 Market volatility is your friend when you have a stable yield plan.", 
      "Our algorithm adjusts to market trends, ensuring your yield remains consistent."),
-    
     ("🏆 Top earners in our program make 5x more by referring just 10 active users.", 
      "Referral bonuses are unlimited – the more you share, the more you earn."),
-    
     ("⏳ Every minute you wait is a missed opportunity. The window for high yields is now.", 
      "Absolutely. The VIP rate just increased – this is the perfect moment to register."),
-    
     ("🔐 Security first – our platform uses bank‑grade encryption for all transactions.", 
      "Your funds are safe. We also have 24/7 monitoring for extra peace of mind."),
-    
     ("🚀 Crypto adoption is skyrocketing. Getting ahead of the curve is smart.", 
      "Our VIP members enjoy early access to new features and higher staking rewards."),
-    
     ("🧠 Education is key – we provide daily tips to maximise your earnings.", 
      "We also have a community where you can learn from top earners every day."),
-    
     ("💎 VIP members get priority support and exclusive bonuses.", 
      "Plus, you receive daily payouts automatically – no delays, no hassle."),
-    
     ("📱 Our mobile dashboard lets you manage your earnings from anywhere.", 
      "It's intuitive and gives you real‑time analytics on your growth."),
-    
     ("🔄 Compounding is the 8th wonder of the world. Our 3.5% daily return compounds fast.", 
      "In just a few months, your investment can double. It's powerful."),
-    
     ("🤝 Community matters – join our official channel and connect with top earners.", 
      "You'll get insider tips and early announcements. Don't miss out!"),
-    
     ("📅 We process withdrawals within 24 hours – no lock‑in periods.", 
      "You have full control over your funds. Withdraw anytime you want."),
-    
     ("🌟 Real testimonials: 'I doubled my investment in 3 months with this program.'", 
      "That's the power of consistent daily returns. You can achieve the same."),
-    
     ("📊 Diversify your portfolio with a stable high‑yield addition like ours.", 
      "Our track record speaks for itself. It's a smart addition to any portfolio."),
-    
     ("⏰ The early bird gets the worm – register now before the next bonus round ends.", 
      "Yes, the current bonus period is limited. Act fast to secure the extra rewards."),
-    
     ("🔥 Referral bonuses are unlimited – you earn even when your team grows.", 
      "That's passive income on top of your daily yield. It's a win‑win."),
-    
     ("🏦 No hidden fees – what you see is what you earn.", 
      "Transparency is our policy. Every transaction is clearly shown in your dashboard."),
-    
     ("📈 Our algorithm adjusts to market trends to keep your yield consistent.", 
      "It's designed to weather market fluctuations, so your returns remain stable."),
-    
     ("💬 24/7 support team – we're here to answer all your questions.", 
      "Support is available via @puya1521 – they're friendly and responsive."),
-    
     ("🎯 Set your daily earning goal and watch it become reality.", 
      "With our tools, you can track your progress and stay motivated."),
-    
     ("🧩 Team commission structure is transparent – up to 0.6% for leaders.", 
      "If you're a team leader, you also receive salaries. Contact us to apply."),
-    
     ("🌍 Our community spans 50+ countries – you're joining a global movement.", 
      "Network with like‑minded earners and share strategies."),
-    
     ("🛡️ Risk management tools are included – protect your capital while earning.", 
      "We give you options to hedge, so you can earn with confidence."),
-    
     ("📆 Monthly leaderboard competitions – win extra prizes for top performers.", 
      "Compete and earn recognition plus additional bonuses."),
-    
     ("💼 Treat this as a side business – it has real income potential.", 
      "Many of our members have turned this into their primary income source."),
-    
     ("📲 Instant notifications for every transaction – stay in control.", 
      "You'll never miss a deposit or withdrawal. Total transparency."),
-    
     ("🔗 Share your referral link and start earning within minutes.", 
      "It's that simple – every new user brings you rewards."),
-    
     ("🏅 Become a team leader and unlock exclusive training sessions.", 
      "We provide mentorship to help you grow your team effectively."),
-    
     ("💸 Withdraw your earnings anytime – no lock‑in periods.", 
      "Your money is always accessible. Withdrawal requests are processed swiftly."),
 ]
 
-# ---------- FINAL PROMOTIONAL TEXT ----------
 FINAL_CALL_A = (
     "✅ VIP has increased to 3.5% + 3📌\n\n"
     "🪙 REGISTER HERE ⏩⏩ https://app-web.mobiuspe-app.com/regist?code=earnmoney426\n\n"
@@ -146,7 +115,6 @@ def save_group_id(chat_id):
             for cid in ids:
                 f.write(f"{cid}\n")
 
-# ---------- SEND HELPERS ----------
 async def send_to_groups(context_a, context_b, text_a, text_b=None):
     for cid in load_group_ids():
         if text_a:
@@ -188,7 +156,6 @@ async def daily_session(app_a, app_b, test_mode=False):
     await send_to_groups(app_a, app_b, FINAL_CALL_A, FINAL_CALL_B)
     logger.info("Daily session completed.")
 
-# ---------- SCHEDULER WRAPPER ----------
 def start_daily_session(app_a, app_b):
     asyncio.create_task(daily_session(app_a, app_b, test_mode=False))
 
@@ -221,12 +188,9 @@ async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     await context.bot.send_message(chat_id, "🧪 Test session started! (3 exchanges + final)")
     
-    # Get app references from context
-    app_a = context.application
-    app_b = None
-    # We need to get app_b from the global variable or from the main scope
-    # Since we're inside a handler, we'll use the global app_b variable
+    # Get app_b from global
     global APP_B
+    app_a = context.application
     app_b = APP_B
     
     pairs = random.sample(CONVERSATION_PAIRS, min(3, len(CONVERSATION_PAIRS)))
@@ -245,10 +209,10 @@ async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def main():
     global APP_B
     
-    # Create applications
+    # Build applications
     app_a = Application.builder().token(TOKEN_A).build()
     app_b = Application.builder().token(TOKEN_B).build()
-    APP_B = app_b  # Store for test handler
+    APP_B = app_b
     
     # Register handlers on both apps
     for app in (app_a, app_b):
@@ -256,14 +220,11 @@ async def main():
         app.add_handler(CommandHandler("addgroup", add_group))
         app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_group))
     
-    # Register test only on app_a
     app_a.add_handler(CommandHandler("test", test_handler))
     
-    # Initialize both apps
+    # Initialize and start apps
     await app_a.initialize()
     await app_b.initialize()
-    
-    # Start both apps
     await app_a.start()
     await app_b.start()
     
@@ -281,19 +242,31 @@ async def main():
     logger.info("Both bots started. Press Ctrl+C to stop.")
     
     # Start polling for both bots
+    poll_a = asyncio.create_task(app_a.updater.start_polling(allowed_updates=Update.ALL_TYPES))
+    poll_b = asyncio.create_task(app_b.updater.start_polling(allowed_updates=Update.ALL_TYPES))
+    
+    # Wait for termination signal
     try:
-        await asyncio.gather(
-            app_a.updater.start_polling(allowed_updates=Update.ALL_TYPES),
-            app_b.updater.start_polling(allowed_updates=Update.ALL_TYPES)
-        )
+        await asyncio.gather(poll_a, poll_b)
+    except asyncio.CancelledError:
+        logger.info("Received cancellation, stopping...")
     except KeyboardInterrupt:
-        logger.info("Shutting down...")
+        logger.info("Keyboard interrupt received, stopping...")
     finally:
-        # Clean shutdown
+        # Proper shutdown sequence
+        logger.info("Stopping polling...")
+        await app_a.updater.stop()
+        await app_b.updater.stop()
+        logger.info("Stopping apps...")
         await app_a.stop()
         await app_b.stop()
+        logger.info("Shutting down...")
         await app_a.shutdown()
         await app_b.shutdown()
+        logger.info("Shutdown complete.")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Process terminated.")
