@@ -1,18 +1,30 @@
 import asyncio
 import logging
 import random
-from datetime import datetime
+import os
+import sys
+from datetime import datetime, timedelta
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-import os
 
+# Enable logging
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
+# Print version info (helps debug the AttributeError fix)
+logger.info(f"Python version: {sys.version}")
+logger.info(f"Telegram bot version: {__import__('telegram').__version__}")
+
+# ---------- CONFIGURATION ----------
 TOKEN = os.environ.get("BOT_TOKEN")
+if not TOKEN:
+    logger.error("BOT_TOKEN environment variable not set!")
+    sys.exit(1)
+
 GROUP_IDS_FILE = "group_ids.txt"
 
-# ---------- LARGE POOL OF RELATED TOPICS (30+ messages) ----------
+# ---------- LARGE POOL OF RELATED TOPICS (35 unique messages) ----------
 TOPIC_POOL = [
     "📊 Did you know? Passive income streams are growing 20% year over year.",
     "💡 The best time to start earning in crypto was yesterday – the second best is today.",
@@ -45,10 +57,13 @@ TOPIC_POOL = [
     "🔗 Share your referral link and start earning within minutes.",
     "🏅 Become a team leader and unlock exclusive training sessions.",
     "💸 Withdraw your earnings anytime – no lock‑in periods.",
-    "📈 VIP interest rate just increased to 3.5% – now is the perfect time."
+    "📈 VIP interest rate just increased to 3.5% – now is the perfect time.",
+    "⭐ Daily rewards are credited automatically – watch your balance grow.",
+    "📊 Track your performance with real-time analytics tools.",
+    "🎁 Referral contests every month – win bonus prizes!"
 ]
 
-# Your fixed call‑to‑action (sent at the very end)
+# ---------- YOUR EXACT PROMOTIONAL TEXT (sent at the end) ----------
 FINAL_CALL = (
     "✅ VIP has increased to 3.5% + 3📌\n\n"
     "🪙 REGISTER HERE ⏩⏩ https://app-web.mobiuspe-app.com/regist?code=earnmoney426\n\n"
@@ -57,9 +72,7 @@ FINAL_CALL = (
     "Contact support ⭐️ @puya1521"
 )
 
-scheduler = AsyncIOScheduler(timezone="UTC")  # change to your timezone if needed
-
-# ---------- Group ID persistence ----------
+# ---------- GROUP ID PERSISTENCE (file‑based) ----------
 def load_group_ids():
     try:
         with open(GROUP_IDS_FILE, "r") as f:
@@ -75,43 +88,59 @@ def save_group_id(chat_id):
             for cid in ids:
                 f.write(f"{cid}\n")
 
+# ---------- HELPERS ----------
 async def send_to_all_groups(context, text):
     for cid in load_group_ids():
         try:
             await context.bot.send_message(chat_id=cid, text=text, parse_mode="HTML")
         except Exception as e:
-            logging.error(f"Failed to send to {cid}: {e}")
+            logger.error(f"Failed to send to {cid}: {e}")
 
-# ---------- The daily 1‑hour session ----------
-async def daily_session(context):
-    # 1. Seed the random shuffle with today's date so the order changes daily
+# ---------- THE DAILY 1‑HOUR SESSION ----------
+async def daily_session(context, test_mode=False):
+    # Choose interval: 10 seconds for test, 4 minutes for production
+    interval_seconds = 10 if test_mode else 240  # 240 = 4 minutes
+    max_messages = 60 * 60 // 240  # 15 messages per hour (for production)
+    
+    # For test mode, we only send 4 random topics + final call
+    if test_mode:
+        # Pick 4 unique random messages
+        shuffled = random.sample(TOPIC_POOL, min(4, len(TOPIC_POOL)))
+        for msg in shuffled:
+            await send_to_all_groups(context, msg)
+            await asyncio.sleep(3)  # 3 seconds between test messages
+        # Send final promotion
+        await send_to_all_groups(context, FINAL_CALL)
+        return
+    
+    # --- Production mode (full 1‑hour session) ---
+    # Seed with today's date so the order changes daily
     today_seed = datetime.now().date().toordinal()
     random.seed(today_seed)
-    shuffled = random.sample(TOPIC_POOL, len(TOPIC_POOL))  # shuffle all
-
-    # 2. Pick how many messages to send in 1 hour (every 4 minutes => ~15)
-    #    We'll send one every 4 minutes (240 seconds). Adjust as you like.
-    interval_seconds = 240   # 4 minutes
-    max_messages = 60 * 60 // interval_seconds  # 15
-
-    # 3. Send the selected messages
+    shuffled = random.sample(TOPIC_POOL, len(TOPIC_POOL))
+    
+    # Send topic messages at 4‑minute intervals
     for i in range(min(max_messages, len(shuffled))):
         msg = shuffled[i]
         await send_to_all_groups(context, msg)
         if i < max_messages - 1:
             await asyncio.sleep(interval_seconds)
-
-    # 4. After the hour, send the FINAL CALL (your specific details)
-    await asyncio.sleep(5)  # short pause
+    
+    # After the hour, send the FINAL CALL
+    await asyncio.sleep(5)
     await send_to_all_groups(context, FINAL_CALL)
+    logger.info("Daily session completed.")
 
 # Scheduler wrapper
 def start_daily_session(context):
     asyncio.create_task(daily_session(context))
 
-# ---------- Handlers ----------
+# ---------- HANDLERS ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🤖 Bot is active! I'll share daily insights and special offers.")
+    await update.message.reply_text(
+        "🤖 Bot is active! I'll share daily insights and special offers.\n"
+        "Use /test to see a quick demo right now."
+    )
 
 async def add_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
@@ -125,17 +154,42 @@ async def new_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
     if chat.type in ["group", "supergroup"]:
         save_group_id(chat.id)
-        await context.bot.send_message(chat_id=chat.id, text="🎉 Thanks for adding me! I'll post daily insights and offers at the scheduled time.")
+        await context.bot.send_message(
+            chat_id=chat.id,
+            text="🎉 Thanks for adding me! I'll post daily insights and offers at the scheduled time.\nUse /test for a quick demo."
+        )
 
-# ---------- Main ----------
+# ---------- /test COMMAND (4 topics + final call) ----------
+async def test_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text="🧪 **Test Session Started!**\n\nI'll send 4 quick tips, followed by our main offer."
+    )
+    # Pick 4 random unique messages
+    shuffled_topics = random.sample(TOPIC_POOL, min(4, len(TOPIC_POOL)))
+    for msg in shuffled_topics:
+        await context.bot.send_message(chat_id=chat_id, text=msg)
+        await asyncio.sleep(3)
+    # Send the final promotional call
+    await context.bot.send_message(chat_id=chat_id, text=FINAL_CALL)
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text="✅ **Test complete!** The daily scheduled session will run automatically at 10:00 AM UTC."
+    )
+
+# ---------- MAIN ----------
 def main():
     app = Application.builder().token(TOKEN).build()
 
+    # Register handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("addgroup", add_group))
+    app.add_handler(CommandHandler("test", test_command))  # <-- our new test command
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_group))
 
-    # Schedule daily at 10:00 UTC (adjust hour/minute)
+    # Schedule the daily session (10:00 AM UTC every day)
+    scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(
         start_daily_session,
         "cron",
@@ -145,6 +199,7 @@ def main():
     )
     scheduler.start()
 
+    logger.info("Bot started. Press Ctrl+C to stop.")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
