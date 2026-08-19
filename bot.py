@@ -187,8 +187,6 @@ async def new_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     await context.bot.send_message(chat_id, "🧪 Test session started! (3 exchanges + final)")
-    
-    # Get app_b from global
     global APP_B
     app_a = context.application
     app_b = APP_B
@@ -205,7 +203,7 @@ async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await app_b.bot.send_message(chat_id, FINAL_CALL_B)
     await context.bot.send_message(chat_id, "✅ Test complete! Daily session will run at scheduled time.")
 
-# ---------- MAIN (Fixed) ----------
+# ---------- MAIN (with robust error handling and auto‑restart) ----------
 async def main():
     global APP_B
     
@@ -241,29 +239,41 @@ async def main():
     
     logger.info("Both bots started. Press Ctrl+C to stop.")
     
-    # Start polling for both bots
-    poll_a = asyncio.create_task(app_a.updater.start_polling(allowed_updates=Update.ALL_TYPES))
-    poll_b = asyncio.create_task(app_b.updater.start_polling(allowed_updates=Update.ALL_TYPES))
-    
-    # Wait for termination signal
-    try:
-        await asyncio.gather(poll_a, poll_b)
-    except asyncio.CancelledError:
-        logger.info("Received cancellation, stopping...")
-    except KeyboardInterrupt:
-        logger.info("Keyboard interrupt received, stopping...")
-    finally:
-        # Proper shutdown sequence
-        logger.info("Stopping polling...")
-        await app_a.updater.stop()
-        await app_b.updater.stop()
-        logger.info("Stopping apps...")
-        await app_a.stop()
-        await app_b.stop()
-        logger.info("Shutting down...")
-        await app_a.shutdown()
-        await app_b.shutdown()
-        logger.info("Shutdown complete.")
+    # Keep the bot running with auto‑restart if polling stops unexpectedly
+    while True:
+        try:
+            # Run polling tasks
+            await asyncio.gather(
+                app_a.updater.start_polling(allowed_updates=Update.ALL_TYPES),
+                app_b.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+            )
+            # If we get here, polling stopped normally (shouldn't happen)
+            logger.warning("Polling stopped unexpectedly. Restarting in 5 seconds...")
+            await asyncio.sleep(5)
+        except asyncio.CancelledError:
+            logger.info("Received cancellation, shutting down...")
+            break
+        except Exception as e:
+            logger.error(f"Polling error: {e}", exc_info=True)
+            logger.info("Restarting polling in 10 seconds...")
+            await asyncio.sleep(10)
+        finally:
+            # Cleanup on exit
+            logger.info("Stopping polling...")
+            await app_a.updater.stop()
+            await app_b.updater.stop()
+            logger.info("Stopping apps...")
+            await app_a.stop()
+            await app_b.stop()
+            logger.info("Shutting down...")
+            await app_a.shutdown()
+            await app_b.shutdown()
+            logger.info("Shutdown complete.")
+            # If we're not cancelled, restart the loop (unless we broke)
+            if not asyncio.CancelledError:
+                continue
+            else:
+                break
 
 if __name__ == "__main__":
     try:
