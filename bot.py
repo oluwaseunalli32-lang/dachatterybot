@@ -21,8 +21,6 @@ if not TOKEN_A or not TOKEN_B:
 GROUP_IDS_FILE = "group_ids.txt"
 
 # ---------- CONVERSATION PAIRS (Bot A speaks, Bot B replies) ----------
-# Each tuple: (message_from_A, message_from_B)
-# We have 30+ pairs – adjust as needed.
 CONVERSATION_PAIRS = [
     ("📊 Did you know passive income streams are growing 20% year over year?", 
      "Indeed! And our VIP plan gives you 3.5% daily – that's a game changer."),
@@ -118,7 +116,7 @@ CONVERSATION_PAIRS = [
      "Your money is always accessible. Withdrawal requests are processed swiftly."),
 ]
 
-# ---------- FINAL PROMOTIONAL TEXT (exactly as requested) ----------
+# ---------- FINAL PROMOTIONAL TEXT ----------
 FINAL_CALL_A = (
     "✅ VIP has increased to 3.5% + 3📌\n\n"
     "🪙 REGISTER HERE ⏩⏩ https://app-web.mobiuspe-app.com/regist?code=earnmoney426\n\n"
@@ -127,7 +125,6 @@ FINAL_CALL_A = (
     "Contact support ⭐️ @puya1521"
 )
 
-# Bot B will add a short follow‑up to the final call
 FINAL_CALL_B = (
     "💬 What are you waiting for? Click the link above and start earning today!\n"
     "If you have questions, our support team @puya1521 is ready to help."
@@ -151,53 +148,47 @@ def save_group_id(chat_id):
 
 # ---------- SEND HELPERS ----------
 async def send_to_groups(context_a, context_b, text_a, text_b=None):
-    """Send text_a via bot A, and optionally text_b via bot B."""
     for cid in load_group_ids():
         if text_a:
-            await context_a.bot.send_message(chat_id=cid, text=text_a, parse_mode="HTML")
+            try:
+                await context_a.bot.send_message(chat_id=cid, text=text_a, parse_mode="HTML")
+            except Exception as e:
+                logger.error(f"Bot A failed to send to {cid}: {e}")
         if text_b:
-            await context_b.bot.send_message(chat_id=cid, text=text_b, parse_mode="HTML")
+            try:
+                await context_b.bot.send_message(chat_id=cid, text=text_b, parse_mode="HTML")
+            except Exception as e:
+                logger.error(f"Bot B failed to send to {cid}: {e}")
 
-# ---------- DAILY 1‑HOUR SESSION (with two bots) ----------
-async def daily_session(context_a, context_b, test_mode=False):
-    # Choose interval: 1-3 minutes for real, 5-10 seconds for test
+# ---------- DAILY SESSION ----------
+async def daily_session(app_a, app_b, test_mode=False):
     if test_mode:
-        min_wait, max_wait = 5, 10  # seconds
-        # For test, we'll use only 3 conversation pairs
+        min_wait, max_wait = 5, 10
         pairs = random.sample(CONVERSATION_PAIRS, min(3, len(CONVERSATION_PAIRS)))
     else:
-        min_wait, max_wait = 60, 180  # 1-3 minutes
-        # Shuffle pairs using daily seed for variety
+        min_wait, max_wait = 60, 180
         today_seed = datetime.now().date().toordinal()
         random.seed(today_seed)
         shuffled = random.sample(CONVERSATION_PAIRS, len(CONVERSATION_PAIRS))
-        # We'll send ~15 pairs (enough for ~1 hour with 2-4 minute intervals)
-        # Each pair takes (A wait + B wait) ~ 2-6 min, so 15 pairs = ~45-90 min
-        # We'll cap to 15 pairs
         pairs = shuffled[:15]
 
-    # Send conversation pairs
     for idx, (msg_a, msg_b) in enumerate(pairs):
-        # Bot A speaks
-        await send_to_groups(context_a, context_b, msg_a, None)
+        await send_to_groups(app_a, app_b, msg_a, None)
         wait = random.randint(min_wait, max_wait)
         logger.info(f"Bot A sent, waiting {wait}s for Bot B")
         await asyncio.sleep(wait)
 
-        # Bot B replies
-        await send_to_groups(context_a, context_b, None, msg_b)
+        await send_to_groups(app_a, app_b, None, msg_b)
         if idx < len(pairs) - 1:
             wait = random.randint(min_wait, max_wait)
             logger.info(f"Bot B replied, waiting {wait}s for next pair")
             await asyncio.sleep(wait)
 
-    # After all pairs, send the final promotion
-    # Bot A sends the main call, Bot B adds a final encouragement
     await asyncio.sleep(5)
-    await send_to_groups(context_a, context_b, FINAL_CALL_A, FINAL_CALL_B)
+    await send_to_groups(app_a, app_b, FINAL_CALL_A, FINAL_CALL_B)
     logger.info("Daily session completed.")
 
-# ---------- WRAPPER FOR SCHEDULER ----------
+# ---------- SCHEDULER WRAPPER ----------
 def start_daily_session(app_a, app_b):
     asyncio.create_task(daily_session(app_a, app_b, test_mode=False))
 
@@ -225,53 +216,58 @@ async def new_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="🎉 Thanks for adding us! We'll have daily conversations about earning.\nUse /test for a quick demo."
         )
 
-# ---------- /test COMMAND (Short demo with 3 pairs + final) ----------
-async def test_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# ---------- /test COMMAND ----------
+async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
-    await context.bot.send_message(
-        chat_id=chat_id,
-        text="🧪 **Test Session Started!**\n\nWatch the conversation between two bots (3 exchanges + final offer)."
-    )
-    # We'll run a mini session only for this group (not all groups)
-    # We need to send directly, not through the global loop.
-    # We'll just call a function that sends to this specific chat.
-    await run_test_session(chat_id, context.bot)  # but we need both bots - we'll get both from app
+    await context.bot.send_message(chat_id, "🧪 Test session started! (3 exchanges + final)")
+    
+    # Get app references from context
+    app_a = context.application
+    app_b = None
+    # We need to get app_b from the global variable or from the main scope
+    # Since we're inside a handler, we'll use the global app_b variable
+    global APP_B
+    app_b = APP_B
+    
+    pairs = random.sample(CONVERSATION_PAIRS, min(3, len(CONVERSATION_PAIRS)))
+    for msg_a, msg_b in pairs:
+        await app_a.bot.send_message(chat_id, msg_a)
+        await asyncio.sleep(5)
+        await app_b.bot.send_message(chat_id, msg_b)
+        await asyncio.sleep(5)
+    
+    await app_a.bot.send_message(chat_id, FINAL_CALL_A)
+    await asyncio.sleep(3)
+    await app_b.bot.send_message(chat_id, FINAL_CALL_B)
+    await context.bot.send_message(chat_id, "✅ Test complete! Daily session will run at scheduled time.")
 
-# We'll implement test inside main using the app references.
-
-# ---------- MAIN ----------
-def main():
-    # Create two applications
+# ---------- MAIN (Fixed) ----------
+async def main():
+    global APP_B
+    
+    # Create applications
     app_a = Application.builder().token(TOKEN_A).build()
     app_b = Application.builder().token(TOKEN_B).build()
-
-    # Register handlers on both apps (so either bot can respond)
+    APP_B = app_b  # Store for test handler
+    
+    # Register handlers on both apps
     for app in (app_a, app_b):
         app.add_handler(CommandHandler("start", start))
         app.add_handler(CommandHandler("addgroup", add_group))
         app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_group))
-
-    # Register /test command only on app_a (or both)
-    # We need to capture both apps inside the handler.
-    async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        chat_id = update.effective_chat.id
-        await context.bot.send_message(chat_id, "🧪 Test session started! (3 exchanges + final)")
-        # Get conversation pairs for test (3 pairs)
-        pairs = random.sample(CONVERSATION_PAIRS, min(3, len(CONVERSATION_PAIRS)))
-        for msg_a, msg_b in pairs:
-            await app_a.bot.send_message(chat_id, msg_a)
-            await asyncio.sleep(5)  # 5 sec between messages for test
-            await app_b.bot.send_message(chat_id, msg_b)
-            await asyncio.sleep(5)
-        # Send final
-        await app_a.bot.send_message(chat_id, FINAL_CALL_A)
-        await asyncio.sleep(3)
-        await app_b.bot.send_message(chat_id, FINAL_CALL_B)
-        await context.bot.send_message(chat_id, "✅ Test complete! Daily session will run at scheduled time.")
-
+    
+    # Register test only on app_a
     app_a.add_handler(CommandHandler("test", test_handler))
-
-    # Schedule the daily session (10:00 AM UTC)
+    
+    # Initialize both apps
+    await app_a.initialize()
+    await app_b.initialize()
+    
+    # Start both apps
+    await app_a.start()
+    await app_b.start()
+    
+    # Schedule daily session
     scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(
         start_daily_session,
@@ -281,20 +277,23 @@ def main():
         args=[app_a, app_b]
     )
     scheduler.start()
-
+    
     logger.info("Both bots started. Press Ctrl+C to stop.")
-
-    # Run both bots concurrently using asyncio.gather
-    async def run_bots():
-        await asyncio.gather(
-            app_a.run_polling(allowed_updates=Update.ALL_TYPES),
-            app_b.run_polling(allowed_updates=Update.ALL_TYPES)
-        )
-
+    
+    # Start polling for both bots
     try:
-        asyncio.run(run_bots())
+        await asyncio.gather(
+            app_a.updater.start_polling(allowed_updates=Update.ALL_TYPES),
+            app_b.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+        )
     except KeyboardInterrupt:
         logger.info("Shutting down...")
+    finally:
+        # Clean shutdown
+        await app_a.stop()
+        await app_b.stop()
+        await app_a.shutdown()
+        await app_b.shutdown()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
