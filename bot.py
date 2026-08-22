@@ -20,84 +20,125 @@ if not TOKEN_A or not TOKEN_B:
 
 GROUP_IDS_FILE = "group_ids.txt"
 
-# ---------- CONVERSATION PAIRS (30+ pairs for daily variety) ----------
+# ---------- CONVERSATION PAIRS (about USDT exchange and rewards) ----------
 CONVERSATION_PAIRS = [
-    ("📊 Did you know passive income streams are growing 20% year over year?", 
-     "Indeed! And our VIP plan gives you 3.5% daily – that's a game changer."),
-    ("💡 The best time to start earning in crypto was yesterday, but the second best is today.", 
-     "Exactly – every day you wait is lost profit. Join now and start compounding."),
-    ("👥 Team leaders earn significantly more than solo players.", 
-     "Yes, building a downline multiplies your rewards. We offer up to 0.6% team commission."),
-    ("📈 Market volatility is your friend when you have a stable yield plan.", 
-     "Our algorithm adjusts to market trends, ensuring your yield remains consistent."),
-    ("🏆 Top earners in our program make 5x more by referring just 10 active users.", 
-     "Referral bonuses are unlimited – the more you share, the more you earn."),
-    ("⏳ Every minute you wait is a missed opportunity. The window for high yields is now.", 
-     "Absolutely. The VIP rate just increased – this is the perfect moment to register."),
-    ("🔐 Security first – our platform uses bank‑grade encryption for all transactions.", 
-     "Your funds are safe. We also have 24/7 monitoring for extra peace of mind."),
-    ("🚀 Crypto adoption is skyrocketing. Getting ahead of the curve is smart.", 
-     "Our VIP members enjoy early access to new features and higher staking rewards."),
-    ("🧠 Education is key – we provide daily tips to maximise your earnings.", 
-     "We also have a community where you can learn from top earners every day."),
-    ("💎 VIP members get priority support and exclusive bonuses.", 
-     "Plus, you receive daily payouts automatically – no delays, no hassle."),
-    ("📱 Our mobile dashboard lets you manage your earnings from anywhere.", 
-     "It's intuitive and gives you real‑time analytics on your growth."),
-    ("🔄 Compounding is the 8th wonder of the world. Our 3.5% daily return compounds fast.", 
-     "In just a few months, your investment can double. It's powerful."),
-    ("🤝 Community matters – join our official channel and connect with top earners.", 
-     "You'll get insider tips and early announcements. Don't miss out!"),
-    ("📅 We process withdrawals within 24 hours – no lock‑in periods.", 
-     "You have full control over your funds. Withdraw anytime you want."),
-    ("🌟 Real testimonials: 'I doubled my investment in 3 months with this program.'", 
-     "That's the power of consistent daily returns. You can achieve the same."),
-    ("📊 Diversify your portfolio with a stable high‑yield addition like ours.", 
-     "Our track record speaks for itself. It's a smart addition to any portfolio."),
-    ("⏰ The early bird gets the worm – register now before the next bonus round ends.", 
-     "Yes, the current bonus period is limited. Act fast to secure the extra rewards."),
-    ("🔥 Referral bonuses are unlimited – you earn even when your team grows.", 
-     "That's passive income on top of your daily yield. It's a win‑win."),
-    ("🏦 No hidden fees – what you see is what you earn.", 
-     "Transparency is our policy. Every transaction is clearly shown in your dashboard."),
-    ("📈 Our algorithm adjusts to market trends to keep your yield consistent.", 
-     "It's designed to weather market fluctuations, so your returns remain stable."),
-    ("💬 24/7 support team – we're here to answer all your questions.", 
-     "Support is available via @puya1521 – they're friendly and responsive."),
-    ("🎯 Set your daily earning goal and watch it become reality.", 
-     "With our tools, you can track your progress and stay motivated."),
-    ("🧩 Team commission structure is transparent – up to 0.6% for leaders.", 
-     "If you're a team leader, you also receive salaries. Contact us to apply."),
-    ("🌍 Our community spans 50+ countries – you're joining a global movement.", 
-     "Network with like‑minded earners and share strategies."),
-    ("🛡️ Risk management tools are included – protect your capital while earning.", 
-     "We give you options to hedge, so you can earn with confidence."),
-    ("📆 Monthly leaderboard competitions – win extra prizes for top performers.", 
-     "Compete and earn recognition plus additional bonuses."),
-    ("💼 Treat this as a side business – it has real income potential.", 
-     "Many of our members have turned this into their primary income source."),
-    ("📲 Instant notifications for every transaction – stay in control.", 
-     "You'll never miss a deposit or withdrawal. Total transparency."),
-    ("🔗 Share your referral link and start earning within minutes.", 
-     "It's that simple – every new user brings you rewards."),
-    ("🏅 Become a team leader and unlock exclusive training sessions.", 
-     "We provide mentorship to help you grow your team effectively."),
-    ("💸 Withdraw your earnings anytime – no lock‑in periods.", 
-     "Your money is always accessible. Withdrawal requests are processed swiftly."),
+    ("💰 USDT exchange rewards are live! Have you seen the new rates?", 
+     "Yes! USDT is at 108.5 – that's a great rate to exchange right now."),
+    
+    ("🏆 Did you know you can earn up to ₹15,000 bonus on exchanges?", 
+     "Absolutely – the more you exchange, the higher the reward. It's tiered!"),
+    
+    ("📊 If you exchange 100 USDT+, you get ₹80 reward instantly.", 
+     "That's a nice bonus on top of the competitive rate. Every bit helps."),
+    
+    ("🔥 400 USDT+ gives you ₹400 – that's a 1% reward!", 
+     "And it scales up – 1000 USDT gives ₹1,200, which is even better."),
+    
+    ("💎 Exchange 2000 USDT and get ₹3,000 reward – that's huge!", 
+     "Yes, and at 4000 USDT it's ₹8,000 – the rewards keep growing."),
+    
+    ("🏅 The top tier: 6000 USDT+ unlocks ₹15,000 bonus! That's massive.", 
+     "That's a 2.5% reward – unbeatable in today's market."),
+    
+    ("🔔 The official link is live: https://wallet.paisa-base.com/register?inviteCode=phar6p", 
+     "I've registered already – the process is smooth and the rewards are credited quickly."),
+    
+    ("🤝 Invite your friends and build a team – you earn even more.", 
+     "Team building is encouraged. The more active members, the better the ecosystem."),
+    
+    ("📩 For details, just DM @jetlee261 – they respond fast.", 
+     "Yes, support is top‑notch. They'll guide you through the exchange process."),
+    
+    ("🚀 USDT is stable and widely used – exchanging now is a smart move.", 
+     "With the bonus rewards, it's a win‑win. You get extra value for your exchange."),
+    
+    ("⏰ The offer is time‑limited – don't miss out on these rewards.", 
+     "Exactly – early adopters get the best rates and bonuses. Act now."),
+    
+    ("📈 The exchange rate is competitive – 108.5 for USDT is above market.", 
+     "Yes, you get more INR for your USDT compared to other platforms."),
+    
+    ("🎯 Set a target: exchange 6000 USDT and get ₹15,000 – that's a goal!", 
+     "It's achievable if you plan your exchanges. Many users are already there."),
+    
+    ("💬 The community is growing – join the official channel for updates.", 
+     "DM @jetlee261 for the channel link – they share exclusive tips."),
+    
+    ("🔄 Exchange more, earn more – that's the motto. It's simple.", 
+     "Yes, the tiered structure encourages higher volumes, which benefits everyone."),
+    
+    ("🛡️ The platform is secure – your transactions are safe.", 
+     "I've used it – no issues. It's reliable and transparent."),
+    
+    ("📱 You can exchange from your mobile – it's user‑friendly.", 
+     "The dashboard is intuitive. You can track your rewards in real‑time."),
+    
+    ("💡 Did you know you can combine exchange rewards with referral bonuses?", 
+     "Yes, referrals add extra income – share your invite code and earn."),
+    
+    ("🌟 Real users have already earned thousands – check the testimonials.", 
+     "I've seen screenshots – the rewards are real and paid out promptly."),
+    
+    ("📆 Daily exchange limits? No – you can exchange as much as you want.", 
+     "That flexibility is great for high‑volume traders."),
+    
+    ("📊 The reward tiers are updated regularly – stay tuned for more.", 
+     "Yes, they might add higher tiers or bonuses – keep an eye out."),
+    
+    ("🔐 Your funds are safe – we use bank‑grade security.", 
+     "That gives me confidence to exchange larger amounts."),
+    
+    ("📲 Instant notifications – you'll know when rewards are credited.", 
+     "Yes, the system sends alerts. It's transparent and fast."),
+    
+    ("🤖 The registration is quick – just use the official link.", 
+     "I registered in 2 minutes. The process is smooth."),
+    
+    ("📞 Support is available 24/7 via @jetlee261 – they're helpful.", 
+     "They answered all my questions promptly. Great service."),
+    
+    ("🏁 Start with a small exchange to test the system – then go big.", 
+     "That's a good strategy. Once you see the rewards, you'll want to exchange more."),
+    
+    ("💰 The reward bonus is credited instantly after exchange.", 
+     "Yes, no waiting. It's automatic – you see the balance update."),
+    
+    ("🌍 This is a global opportunity – users from many countries are joining.", 
+     "The platform is international, but INR rewards are great for Indian users."),
+    
+    ("📌 Bookmark the official link: https://wallet.paisa-base.com/register?inviteCode=phar6p", 
+     "I've saved it – easy to access anytime."),
+    
+    ("🏆 The top earners are exchanging 6000+ USDT daily – they get ₹15,000 every time!", 
+     "That's serious income potential. It's worth building up to that level."),
+    
+    ("💬 Have questions? DM @jetlee261 – they'll guide you step by step.", 
+     "Yes, they even provide strategy tips to maximise your rewards."),
 ]
 
-# ---------- FINAL PROMOTIONAL MESSAGES ----------
+# ---------- NEW FINAL PROMOTIONAL MESSAGES (exactly as provided) ----------
 FINAL_CALL_A = (
-    "✅ VIP has increased to 3.5% + 3📌\n\n"
-    "🪙 REGISTER HERE ⏩⏩ https://app-web.mobiuspe-app.com/regist?code=earnmoney426\n\n"
-    "✅ We offer team leader salaries and up to 0.6% team commission. Please contact us to apply for a team leader position. 🛒\n\n"
-    "Official channel link ⭐️ https://t.me/mobiuspayofficial1\n"
-    "Contact support ⭐️ @puya1521"
+    "USDT EXCHANGE REWARDS ARE LIVE! 🔄\n\n"
+    "🏆🏆🏆 USDT Rate: 1️⃣0️⃣8️⃣🔤5️⃣\n\n"
+    "📌Enjoy a competitive rate while unlocking extra exchange rewards!\n\n"
+    "OFFICIAL LINK : \n\n"
+    "https://wallet.paisa-base.com/register?inviteCode=phar6p\n\n"
+    "🔔🔔🔔Exchange More, Earn More!\n\n"
+    "☄️Your rewards are waiting:\n"
+    "⭐️ 100 USDT+ → ₹80 Reward\n"
+    "⭐️ 400 USDT+ → ₹400 Reward\n"
+    "⭐️ 1000 USDT+ → ₹1,200 Reward\n"
+    "⭐️ 2000 USDT+ → ₹3,000 Reward\n"
+    "⭐️ 4000 USDT+ → ₹8,000 Reward\n"
+    "🏆 6000 USDT+ → ₹15,000 Reward\n"
+    "✔️Unlock up to ₹15,000 bonus reward with 6000+ USDT exchange!\n"
+    "🤝 Invite your friends, build your team, and start working today!\n"
+    "📩 DM for details & join now!@jetlee261  ✅"
 )
 
 FINAL_CALL_B = (
-    "💬 What are you waiting for? Click the link above and start earning today!\n"
-    "If you have questions, our support team @puya1521 is ready to help."
+    "💬 That's an amazing offer! Contact @jetlee261 right now to get started.\n"
+    "Don't miss out on these rewards – exchange USDT and earn big! 🚀"
 )
 
 # ---------- GROUP ID PERSISTENCE ----------
@@ -163,7 +204,8 @@ def start_daily_session(app_a, app_b):
 # ---------- HANDLERS ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "🤖 Two‑bot system is active! We'll have a conversation about earning opportunities.\n"
+        "🤖 USDT Exchange Rewards Bot is active!\n"
+        "We'll talk about exchange opportunities and rewards.\n"
         "Use /test to see a quick demo right now."
     )
 
@@ -181,7 +223,7 @@ async def new_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
         save_group_id(chat.id)
         await context.bot.send_message(
             chat_id=chat.id,
-            text="🎉 Thanks for adding us! We'll have daily conversations about earning.\nUse /test for a quick demo."
+            text="🎉 Thanks for adding us! We'll share insights on USDT exchange rewards.\nUse /test for a quick demo."
         )
 
 # ---------- /test COMMAND ----------
@@ -204,11 +246,11 @@ async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await app_b.bot.send_message(chat_id, FINAL_CALL_B)
     await context.bot.send_message(chat_id, "✅ Test complete! Daily session will run at scheduled time.")
 
-# ---------- MAIN (Fixed: Always online, auto‑restart polling) ----------
+# ---------- MAIN (Always online, auto‑restart polling) ----------
 async def main():
     global APP_B
     
-    # Build applications (once)
+    # Build applications
     app_a = Application.builder().token(TOKEN_A).build()
     app_b = Application.builder().token(TOKEN_B).build()
     APP_B = app_b
@@ -221,7 +263,7 @@ async def main():
     
     app_a.add_handler(CommandHandler("test", test_handler))
     
-    # Initialize and start apps (once)
+    # Initialize and start apps
     await app_a.initialize()
     await app_b.initialize()
     await app_a.start()
@@ -240,15 +282,13 @@ async def main():
     
     logger.info("Both bots started. Press Ctrl+C to stop.")
     
-    # Keep the bots running; restart polling if it stops for any reason
+    # Keep bots running; restart polling if it stops
     while True:
         try:
-            # Run polling tasks concurrently
             await asyncio.gather(
                 app_a.updater.start_polling(allowed_updates=Update.ALL_TYPES),
                 app_b.updater.start_polling(allowed_updates=Update.ALL_TYPES)
             )
-            # If we get here, polling stopped unexpectedly (should not happen)
             logger.warning("Polling stopped unexpectedly. Restarting in 5 seconds...")
             await asyncio.sleep(5)
         except asyncio.CancelledError:
@@ -258,10 +298,9 @@ async def main():
             logger.error(f"Polling error: {e}", exc_info=True)
             logger.info("Restarting polling in 10 seconds...")
             await asyncio.sleep(10)
-            # Continue the loop to restart polling (apps are still alive)
             continue
     
-    # --- Clean shutdown (only reached if we break out of the loop) ---
+    # Clean shutdown
     logger.info("Stopping polling...")
     await app_a.updater.stop()
     await app_b.updater.stop()
