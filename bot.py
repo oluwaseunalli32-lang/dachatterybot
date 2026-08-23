@@ -3,7 +3,6 @@ import logging
 import random
 import os
 import sys
-import threading
 from datetime import datetime
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
@@ -215,7 +214,7 @@ async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await app_b.bot.send_message(chat_id, FINAL_CALL_B)
     await context.bot.send_message(chat_id, "✅ Test complete! Daily session will run at scheduled time.")
 
-# ---------- MAIN (Simplified – NO manual restart loop) ----------
+# ---------- MAIN (Simple, NO restart loops) ----------
 async def main():
     global APP_B
     
@@ -224,7 +223,7 @@ async def main():
     app_b = Application.builder().token(TOKEN_B).build()
     APP_B = app_b
     
-    # Clear any webhooks
+    # Clear webhooks to avoid stale connections
     try:
         await app_a.bot.delete_webhook()
         await app_b.bot.delete_webhook()
@@ -246,20 +245,20 @@ async def main():
     await app_a.start()
     await app_b.start()
     
-    # Schedule daily session at 10:35 UTC
+    # Schedule daily session at 10:40 UTC (updated)
     scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(
         start_daily_session,
         "cron",
         hour=10,
-        minute=35,
+        minute=40,          # <-- 10:40 UTC
         args=[app_a, app_b]
     )
     scheduler.start()
     
-    logger.info("Both bots started. Daily session scheduled at 10:35 UTC. Press Ctrl+C to stop.")
+    logger.info("Both bots started. Daily session scheduled at 10:40 UTC. Press Ctrl+C to stop.")
     
-    # Run both bots – this blocks forever (no restart loop)
+    # Run both bots – this will block forever.
     try:
         await asyncio.gather(
             app_a.updater.start_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True),
@@ -268,7 +267,8 @@ async def main():
     except asyncio.CancelledError:
         logger.info("Cancelled, shutting down...")
     except Exception as e:
-        logger.error(f"Fatal error: {e}", exc_info=True)
+        logger.error(f"Fatal polling error: {e}", exc_info=True)
+        raise  # Let Render restart the worker
     finally:
         # Clean shutdown
         logger.info("Stopping polling...")
