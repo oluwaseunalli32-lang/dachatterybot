@@ -20,7 +20,7 @@ if not TOKEN_A or not TOKEN_B:
 
 GROUP_IDS_FILE = "group_ids.txt"
 
-# ---------- CONVERSATION PAIRS (about USDT exchange) ----------
+# ---------- CONVERSATION PAIRS ----------
 CONVERSATION_PAIRS = [
     ("💰 USDT exchange rewards are live! Have you seen the new rates?", 
      "Yes! USDT is at 108.5 – that's a great rate to exchange right now."),
@@ -86,7 +86,6 @@ CONVERSATION_PAIRS = [
      "Yes, they even provide strategy tips to maximise your rewards."),
 ]
 
-# ---------- FINAL PROMOTIONAL MESSAGES ----------
 FINAL_CALL_A = (
     "USDT EXCHANGE REWARDS ARE LIVE! 🔄\n\n"
     "🏆🏆🏆 USDT Rate: 1️⃣0️⃣8️⃣🔤5️⃣\n\n"
@@ -140,7 +139,7 @@ async def send_to_groups(context_a, context_b, text_a, text_b=None):
             except Exception as e:
                 logger.error(f"Bot B failed to send to {cid}: {e}")
 
-# ---------- DAILY 1‑HOUR SESSION ----------
+# ---------- DAILY SESSION ----------
 async def daily_session(app_a, app_b, test_mode=False):
     if test_mode:
         min_wait, max_wait = 5, 10
@@ -196,7 +195,6 @@ async def new_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="🎉 Thanks for adding us! We'll share insights on USDT exchange rewards.\nUse /test for a quick demo."
         )
 
-# ---------- /test COMMAND ----------
 async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     await context.bot.send_message(chat_id, "🧪 Test session started! (3 exchanges + final)")
@@ -216,7 +214,7 @@ async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await app_b.bot.send_message(chat_id, FINAL_CALL_B)
     await context.bot.send_message(chat_id, "✅ Test complete! Daily session will run at scheduled time.")
 
-# ---------- MAIN (Robust restart) ----------
+# ---------- MAIN (Conflict‑proof, 10:35 UTC) ----------
 async def main():
     global APP_B
     
@@ -225,7 +223,15 @@ async def main():
     app_b = Application.builder().token(TOKEN_B).build()
     APP_B = app_b
     
-    # Register handlers on both apps
+    # Clear any webhooks to avoid conflicts
+    try:
+        await app_a.bot.delete_webhook()
+        await app_b.bot.delete_webhook()
+        logger.info("Webhooks cleared.")
+    except Exception as e:
+        logger.warning(f"Could not delete webhook: {e}")
+    
+    # Register handlers
     for app in (app_a, app_b):
         app.add_handler(CommandHandler("start", start))
         app.add_handler(CommandHandler("addgroup", add_group))
@@ -239,63 +245,67 @@ async def main():
     await app_a.start()
     await app_b.start()
     
-    # Schedule daily session at 10:20 UTC
+    # Schedule daily session at 10:35 UTC
     scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(
         start_daily_session,
         "cron",
         hour=10,
-        minute=20,
+        minute=35,
         args=[app_a, app_b]
     )
     scheduler.start()
     
-    logger.info("Both bots started. Daily session scheduled at 10:20 UTC. Press Ctrl+C to stop.")
+    logger.info("Both bots started. Daily session scheduled at 10:35 UTC. Press Ctrl+C to stop.")
     
-    # Main polling loop with proper cleanup and restart
+    # Main polling loop with conflict handling
     while True:
-        polling_running = True
         try:
             # Start polling tasks
             poll_a = asyncio.create_task(app_a.updater.start_polling(allowed_updates=Update.ALL_TYPES))
             poll_b = asyncio.create_task(app_b.updater.start_polling(allowed_updates=Update.ALL_TYPES))
             
-            # Wait for either to finish (they shouldn't)
+            # Wait for them to finish (they shouldn't)
             await asyncio.gather(poll_a, poll_b)
-            # If we get here, something stopped polling
+            # If we get here, they stopped unexpectedly
             logger.warning("Polling tasks finished unexpectedly.")
-            polling_running = False
+            
         except asyncio.CancelledError:
             logger.info("Polling cancelled, shutting down.")
             break
         except Exception as e:
             logger.error(f"Polling error: {e}", exc_info=True)
-            polling_running = False
-        
-        # If polling stopped (or error), perform cleanup
-        if not polling_running:
-            # Stop the updaters to release the connection
+            
+            # If it's a Conflict error, we need to force a full restart.
+            if "Conflict" in str(e):
+                logger.critical("Conflict detected – another instance is running. Exiting to let Render restart.")
+                # Stop the updaters and exit
+                try:
+                    await app_a.updater.stop()
+                except:
+                    pass
+                try:
+                    await app_b.updater.stop()
+                except:
+                    pass
+                sys.exit(1)
+            
+            # Otherwise, attempt to restart polling cleanly
             try:
-                logger.info("Stopping updater A...")
+                logger.info("Stopping updaters...")
                 await app_a.updater.stop()
-            except Exception as stop_err:
-                logger.warning(f"Error stopping updater A: {stop_err}")
-            try:
-                logger.info("Stopping updater B...")
                 await app_b.updater.stop()
             except Exception as stop_err:
-                logger.warning(f"Error stopping updater B: {stop_err}")
+                logger.warning(f"Error stopping updaters: {stop_err}")
             
-            # Wait a moment to ensure everything is released
-            logger.info("Waiting 10 seconds before restarting...")
+            logger.info("Waiting 10 seconds before restarting polling...")
             await asyncio.sleep(10)
-            # Continue the loop to restart polling
             continue
         
-        # If we break out of the loop, clean shutdown
-        break
+        # If we get here, restart the loop
+        continue
     
-    # --- Clean shutdown ---
+    # Clean shutdown
     logger.info("Stopping apps...")
     await app_a.stop()
     await app_b.stop()
