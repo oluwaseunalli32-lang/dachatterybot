@@ -55,7 +55,8 @@ APP_B = None
 # 3 hours
 SESSION_INTERVAL = 3 * 60 * 60
 
-# Normal session message delay
+# Normal session message delay (in seconds)
+# You can increase these to 60‑180 for a slower, more natural pace
 NORMAL_WAIT_MIN = 10
 NORMAL_WAIT_MAX = 30
 
@@ -68,72 +69,171 @@ TEST_WAIT_MAX = 5
 # ACTIVE GROUP TASKS
 # =========================================================
 
-# Example:
-#
-# {
-#     -100123456789: asyncio.Task(...)
-# }
-#
 GROUP_SESSION_TASKS = {}
 
 
 # =========================================================
-# NEUTRAL TEST CONVERSATION
+# PROMOTIONAL CONVERSATION PAIRS
 # =========================================================
 #
-# These are deliberately neutral test messages.
-# They do not simulate customers, testimonials,
-# endorsements, financial claims, or promotional activity.
+# Each tuple: (Bot A message, Bot B reply)
+# Topics: USDT exchange, rewards, team building, registration, support.
 # =========================================================
 
 CONVERSATION_PAIRS = [
     (
-        "🤖 Bot A: Hello! This is a system test message.",
-        "🤖 Bot B: Bot B received the message successfully.",
+        "💰 USDT exchange rewards are live! Have you seen the new rates?",
+        "Yes! USDT is at 108.5 – that's a great rate to exchange right now.",
     ),
     (
-        "📋 Bot A: Checking the message sequence now.",
-        "📋 Bot B: Sequence check completed successfully.",
+        "🏆 Did you know you can earn up to ₹15,000 bonus on exchanges?",
+        "Absolutely – the more you exchange, the higher the reward. It's tiered!",
     ),
     (
-        "🔄 Bot A: Testing communication between the two bots.",
-        "🔄 Bot B: Communication test received.",
+        "📊 If you exchange 100 USDT+, you get ₹80 reward instantly.",
+        "That's a nice bonus on top of the competitive rate. Every bit helps.",
     ),
     (
-        "⏱️ Bot A: Testing the scheduled delay.",
-        "⏱️ Bot B: Scheduled delay test completed.",
+        "🔥 400 USDT+ gives you ₹400 – that's a 1% reward!",
+        "And it scales up – 1000 USDT gives ₹1,200, which is even better.",
     ),
     (
-        "📡 Bot A: Testing message delivery to this group.",
-        "📡 Bot B: Message delivery is working.",
+        "💎 Exchange 2000 USDT and get ₹3,000 reward – that's huge!",
+        "Yes, and at 4000 USDT it's ₹8,000 – the rewards keep growing.",
     ),
     (
-        "🧪 Bot A: Running another neutral system check.",
-        "🧪 Bot B: Neutral system check received.",
+        "🏅 The top tier: 6000 USDT+ unlocks ₹15,000 bonus! That's massive.",
+        "That's a 2.5% reward – unbeatable in today's market.",
     ),
     (
-        "✅ Bot A: The first part of this test is complete.",
-        "✅ Bot B: The second part of this test is complete.",
+        "🔔 The official link is live: https://wallet.paisa-base.com/register?inviteCode=phar6p",
+        "I've registered already – the process is smooth and the rewards are credited quickly.",
     ),
     (
-        "🔔 Bot A: This is a normal automated test notification.",
-        "🔔 Bot B: Notification received successfully.",
+        "🤝 Invite your friends and build a team – you earn even more.",
+        "Team building is encouraged. The more active members, the better the ecosystem.",
+    ),
+    (
+        "📩 For details, just DM @jetlee261 – they respond fast.",
+        "Yes, support is top‑notch. They'll guide you through the exchange process.",
+    ),
+    (
+        "🚀 USDT is stable and widely used – exchanging now is a smart move.",
+        "With the bonus rewards, it's a win‑win. You get extra value for your exchange.",
+    ),
+    (
+        "⏰ The offer is time‑limited – don't miss out on these rewards.",
+        "Exactly – early adopters get the best rates and bonuses. Act now.",
+    ),
+    (
+        "📈 The exchange rate is competitive – 108.5 for USDT is above market.",
+        "Yes, you get more INR for your USDT compared to other platforms.",
+    ),
+    (
+        "🎯 Set a target: exchange 6000 USDT and get ₹15,000 – that's a goal!",
+        "It's achievable if you plan your exchanges. Many users are already there.",
+    ),
+    (
+        "💬 The community is growing – join the official channel for updates.",
+        "DM @jetlee261 for the channel link – they share exclusive tips.",
+    ),
+    (
+        "🔄 Exchange more, earn more – that's the motto. It's simple.",
+        "Yes, the tiered structure encourages higher volumes, which benefits everyone.",
+    ),
+    (
+        "🛡️ The platform is secure – your transactions are safe.",
+        "I've used it – no issues. It's reliable and transparent.",
+    ),
+    (
+        "📱 You can exchange from your mobile – it's user‑friendly.",
+        "The dashboard is intuitive. You can track your rewards in real‑time.",
+    ),
+    (
+        "💡 Did you know you can combine exchange rewards with referral bonuses?",
+        "Yes, referrals add extra income – share your invite code and earn.",
+    ),
+    (
+        "🌟 Real users have already earned thousands – check the testimonials.",
+        "I've seen screenshots – the rewards are real and paid out promptly.",
+    ),
+    (
+        "📆 Daily exchange limits? No – you can exchange as much as you want.",
+        "That flexibility is great for high‑volume traders.",
+    ),
+    (
+        "📊 The reward tiers are updated regularly – stay tuned for more.",
+        "Yes, they might add higher tiers or bonuses – keep an eye out.",
+    ),
+    (
+        "🔐 Your funds are safe – we use bank‑grade security.",
+        "That gives me confidence to exchange larger amounts.",
+    ),
+    (
+        "📲 Instant notifications – you'll know when rewards are credited.",
+        "Yes, the system sends alerts. It's transparent and fast.",
+    ),
+    (
+        "🤖 The registration is quick – just use the official link.",
+        "I registered in 2 minutes. The process is smooth.",
+    ),
+    (
+        "📞 Support is available 24/7 via @jetlee261 – they're helpful.",
+        "They answered all my questions promptly. Great service.",
+    ),
+    (
+        "🏁 Start with a small exchange to test the system – then go big.",
+        "That's a good strategy. Once you see the rewards, you'll want to exchange more.",
+    ),
+    (
+        "💰 The reward bonus is credited instantly after exchange.",
+        "Yes, no waiting. It's automatic – you see the balance update.",
+    ),
+    (
+        "🌍 This is a global opportunity – users from many countries are joining.",
+        "The platform is international, but INR rewards are great for Indian users.",
+    ),
+    (
+        "📌 Bookmark the official link: https://wallet.paisa-base.com/register?inviteCode=phar6p",
+        "I've saved it – easy to access anytime.",
+    ),
+    (
+        "🏆 The top earners are exchanging 6000+ USDT daily – they get ₹15,000 every time!",
+        "That's serious income potential. It's worth building up to that level.",
+    ),
+    (
+        "💬 Have questions? DM @jetlee261 – they'll guide you step by step.",
+        "Yes, they even provide strategy tips to maximise your rewards.",
     ),
 ]
 
 
 # =========================================================
-# FINAL SESSION MESSAGES
+# FINAL CALL‑TO‑ACTION MESSAGES
 # =========================================================
 
 FINAL_CALL_A = (
-    "🏁 Bot A: Test session is reaching its final step.\n\n"
-    "The session will finish after this message."
+    "⚠️⚠️⚠️ USDT EXCHANGE REWARDS ARE LIVE! 🔄\n\n"
+    "🏆🏆🏆 **USDT Rate: 1️⃣0️⃣8️⃣🔤5️⃣**\n\n"
+    "📌Enjoy a competitive rate while unlocking extra exchange rewards!\n\n"
+    "**OFFICIAL LINK** : \n\n"
+    "https://wallet.paisa-base.com/register?inviteCode=phar6p\n\n"
+    "🔔🔔🔔**Exchange More, Earn More!**\n\n"
+    "☄️Your rewards are waiting:\n\n"
+    "> ⭐️ **100 USDT+ → ₹80 Reward**\n"
+    "> **⭐️ 400 USDT+ → ₹400 Reward**\n"
+    "> **⭐️ 1000 USDT+ → ₹1,200 Reward**\n"
+    "> **⭐️ 2000 USDT+ → ₹3,000 Reward**\n"
+    "> **⭐️ 4000 USDT+ → ₹8,000 Reward**\n"
+    "> **🏆 6000 USDT+ → ₹15,000 Reward**\n\n"
+    "✔️**Unlock up to ₹15,000 bonus reward with 6000+ USDT exchange!**\n"
+    "🤝 Invite your friends, build your team, and start working today!\n"
+    "📩 **DM for details & join now!**@jetlee261  ✅"
 )
 
 FINAL_CALL_B = (
-    "✅ Bot B: Test session completed successfully.\n\n"
-    "The 3-hour countdown will now begin."
+    "💬 That's an amazing offer! Contact @jetlee261 right now to get started.\n\n"
+    "Don't miss out on these rewards – exchange USDT and earn big! 🚀"
 )
 
 
@@ -342,7 +442,7 @@ async def run_session(
     else:
 
         number_of_pairs = min(
-            6,
+            8,  # increased from 6 for more content
             len(CONVERSATION_PAIRS),
         )
 
@@ -422,11 +522,11 @@ async def run_session(
             )
 
     # =====================================================
-    # FINAL SESSION MESSAGES
+    # FINAL SESSION MESSAGES (Call‑to‑Action)
     # =====================================================
 
     logger.info(
-        "Group %s: sending final session messages.",
+        "Group %s: sending final call‑to‑action messages.",
         chat_id,
     )
 
@@ -731,8 +831,8 @@ async def start_command(
 
             await update.message.reply_text(
                 "✅ Session cycle started.\n\n"
-                "The first test session will begin now.\n"
-                "The 3-hour countdown starts only after "
+                "The first promotional conversation will begin now.\n"
+                "The 3‑hour countdown starts only after "
                 "the session completely finishes."
             )
 
@@ -791,7 +891,7 @@ async def test_command(
     context: ContextTypes.DEFAULT_TYPE,
 ):
     """
-    Run one neutral test session.
+    Run one promotional test session.
 
     This does NOT activate the 3-hour recurring cycle.
     """
@@ -845,7 +945,7 @@ async def test_command(
     if update.message:
 
         await update.message.reply_text(
-            "🧪 One-time test session starting..."
+            "🧪 One‑time test session starting..."
         )
 
     try:
@@ -858,8 +958,8 @@ async def test_command(
         if update.message:
 
             await update.message.reply_text(
-                "✅ One-time test completed.\n\n"
-                "The 3-hour recurring cycle was not started."
+                "✅ One‑time test completed.\n\n"
+                "The 3‑hour recurring cycle was not started."
             )
 
     except asyncio.CancelledError:
@@ -907,7 +1007,7 @@ async def status_command(
             "🟢 ACTIVE\n\n"
             "The recurring session cycle is active.\n\n"
             "Sequence:\n"
-            "Session → final message → 3-hour wait → "
+            "Session → final CTA → 3‑hour wait → "
             "next session."
         )
 
@@ -983,7 +1083,7 @@ async def help_command(
     if update.message:
 
         await update.message.reply_text(
-            "🤖 Two-Bot Test System\n\n"
+            "🤖 Two‑Bot Promotional System\n\n"
             "/start — Start recurring sessions\n"
             "/stop — Stop recurring sessions\n"
             "/test — Run one test session\n"
@@ -1221,6 +1321,7 @@ async def main():
 
     try:
 
+        # This waits indefinitely until cancelled
         await asyncio.Event().wait()
 
     except asyncio.CancelledError:
