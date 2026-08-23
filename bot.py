@@ -55,8 +55,7 @@ APP_B = None
 # 3 hours
 SESSION_INTERVAL = 3 * 60 * 60
 
-# Normal session message delay (in seconds)
-# You can increase these to 60‑180 for a slower, more natural pace
+# Normal session message delay
 NORMAL_WAIT_MIN = 10
 NORMAL_WAIT_MAX = 30
 
@@ -73,11 +72,7 @@ GROUP_SESSION_TASKS = {}
 
 
 # =========================================================
-# PROMOTIONAL CONVERSATION PAIRS
-# =========================================================
-#
-# Each tuple: (Bot A message, Bot B reply)
-# Topics: USDT exchange, rewards, team building, registration, support.
+# PROMOTIONAL CONVERSATION PAIRS (REPLACED)
 # =========================================================
 
 CONVERSATION_PAIRS = [
@@ -209,7 +204,7 @@ CONVERSATION_PAIRS = [
 
 
 # =========================================================
-# FINAL CALL‑TO‑ACTION MESSAGES
+# FINAL CALL‑TO‑ACTION MESSAGES (REPLACED)
 # =========================================================
 
 FINAL_CALL_A = (
@@ -442,7 +437,7 @@ async def run_session(
     else:
 
         number_of_pairs = min(
-            8,  # increased from 6 for more content
+            6,
             len(CONVERSATION_PAIRS),
         )
 
@@ -522,11 +517,11 @@ async def run_session(
             )
 
     # =====================================================
-    # FINAL SESSION MESSAGES (Call‑to‑Action)
+    # FINAL SESSION MESSAGES
     # =====================================================
 
     logger.info(
-        "Group %s: sending final call‑to‑action messages.",
+        "Group %s: sending final session messages.",
         chat_id,
     )
 
@@ -831,8 +826,8 @@ async def start_command(
 
             await update.message.reply_text(
                 "✅ Session cycle started.\n\n"
-                "The first promotional conversation will begin now.\n"
-                "The 3‑hour countdown starts only after "
+                "The first promotional session will begin now.\n"
+                "The 3-hour countdown starts only after "
                 "the session completely finishes."
             )
 
@@ -945,7 +940,7 @@ async def test_command(
     if update.message:
 
         await update.message.reply_text(
-            "🧪 One‑time test session starting..."
+            "🧪 One-time test session starting..."
         )
 
     try:
@@ -958,8 +953,8 @@ async def test_command(
         if update.message:
 
             await update.message.reply_text(
-                "✅ One‑time test completed.\n\n"
-                "The 3‑hour recurring cycle was not started."
+                "✅ One-time test completed.\n\n"
+                "The 3-hour recurring cycle was not started."
             )
 
     except asyncio.CancelledError:
@@ -1007,7 +1002,7 @@ async def status_command(
             "🟢 ACTIVE\n\n"
             "The recurring session cycle is active.\n\n"
             "Sequence:\n"
-            "Session → final CTA → 3‑hour wait → "
+            "Session → final CTA → 3-hour wait → "
             "next session."
         )
 
@@ -1083,7 +1078,7 @@ async def help_command(
     if update.message:
 
         await update.message.reply_text(
-            "🤖 Two‑Bot Promotional System\n\n"
+            "🤖 Two-Bot Promotional System\n\n"
             "/start — Start recurring sessions\n"
             "/stop — Stop recurring sessions\n"
             "/test — Run one test session\n"
@@ -1167,19 +1162,12 @@ def configure_application(
 
 
 # =========================================================
-# MAIN
+# MAIN (Unchanged – your original sequential polling)
 # =========================================================
 
 async def main():
     """
     Run both Telegram bots on the SAME asyncio event loop.
-
-    This avoids:
-      - threading
-      - separate asyncio loops
-      - cross-loop locks
-      - set_signal_handlers()
-      - run_polling() conflicts
     """
 
     global APP_A
@@ -1274,7 +1262,7 @@ async def main():
     await APP_B.start()
 
     # =====================================================
-    # START POLLING
+    # START POLLING (sequential – your original logic)
     # =====================================================
 
     logger.info(
@@ -1321,7 +1309,6 @@ async def main():
 
     try:
 
-        # This waits indefinitely until cancelled
         await asyncio.Event().wait()
 
     except asyncio.CancelledError:
