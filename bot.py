@@ -1,286 +1,810 @@
 import asyncio
 import logging
-import random
 import os
-import sys
-import threading
-import time
-from datetime import datetime
+import random
+
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters,
+)
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-logging.basicConfig(level=logging.INFO)
+
+# =========================================================
+# LOGGING
+# =========================================================
+
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+)
+
 logger = logging.getLogger(__name__)
 
-# ---------- CONFIGURATION ----------
+
+# =========================================================
+# CONFIGURATION
+# =========================================================
+
 TOKEN_A = os.environ.get("BOT_TOKEN_A")
 TOKEN_B = os.environ.get("BOT_TOKEN_B")
+
 if not TOKEN_A or not TOKEN_B:
-    logger.error("Both BOT_TOKEN_A and BOT_TOKEN_B must be set!")
-    sys.exit(1)
+    raise RuntimeError(
+        "BOT_TOKEN_A and BOT_TOKEN_B must both be set."
+    )
 
 GROUP_IDS_FILE = "group_ids.txt"
+
 APP_A = None
 APP_B = None
 
-# ---------- CONVERSATION PAIRS ----------
+
+# =========================================================
+# CONVERSATION PAIRS
+# =========================================================
+
 CONVERSATION_PAIRS = [
-    ("💰 USDT exchange rewards are live! Have you seen the new rates?", 
-     "Yes! USDT is at 108.5 – that's a great rate to exchange right now."),
-    ("🏆 Did you know you can earn up to ₹15,000 bonus on exchanges?", 
-     "Absolutely – the more you exchange, the higher the reward. It's tiered!"),
-    ("📊 If you exchange 100 USDT+, you get ₹80 reward instantly.", 
-     "That's a nice bonus on top of the competitive rate. Every bit helps."),
-    ("🔥 400 USDT+ gives you ₹400 – that's a 1% reward!", 
-     "And it scales up – 1000 USDT gives ₹1,200, which is even better."),
-    ("💎 Exchange 2000 USDT and get ₹3,000 reward – that's huge!", 
-     "Yes, and at 4000 USDT it's ₹8,000 – the rewards keep growing."),
-    ("🏅 The top tier: 6000 USDT+ unlocks ₹15,000 bonus! That's massive.", 
-     "That's a 2.5% reward – unbeatable in today's market."),
-    ("🔔 The official link is live: https://wallet.paisa-base.com/register?inviteCode=phar6p", 
-     "I've registered already – the process is smooth and the rewards are credited quickly."),
-    ("🤝 Invite your friends and build a team – you earn even more.", 
-     "Team building is encouraged. The more active members, the better the ecosystem."),
-    ("📩 For details, just DM @jetlee261 – they respond fast.", 
-     "Yes, support is top‑notch. They'll guide you through the exchange process."),
-    ("🚀 USDT is stable and widely used – exchanging now is a smart move.", 
-     "With the bonus rewards, it's a win‑win. You get extra value for your exchange."),
-    ("⏰ The offer is time‑limited – don't miss out on these rewards.", 
-     "Exactly – early adopters get the best rates and bonuses. Act now."),
-    ("📈 The exchange rate is competitive – 108.5 for USDT is above market.", 
-     "Yes, you get more INR for your USDT compared to other platforms."),
-    ("🎯 Set a target: exchange 6000 USDT and get ₹15,000 – that's a goal!", 
-     "It's achievable if you plan your exchanges. Many users are already there."),
-    ("💬 The community is growing – join the official channel for updates.", 
-     "DM @jetlee261 for the channel link – they share exclusive tips."),
-    ("🔄 Exchange more, earn more – that's the motto. It's simple.", 
-     "Yes, the tiered structure encourages higher volumes, which benefits everyone."),
-    ("🛡️ The platform is secure – your transactions are safe.", 
-     "I've used it – no issues. It's reliable and transparent."),
-    ("📱 You can exchange from your mobile – it's user‑friendly.", 
-     "The dashboard is intuitive. You can track your rewards in real‑time."),
-    ("💡 Did you know you can combine exchange rewards with referral bonuses?", 
-     "Yes, referrals add extra income – share your invite code and earn."),
-    ("🌟 Real users have already earned thousands – check the testimonials.", 
-     "I've seen screenshots – the rewards are real and paid out promptly."),
-    ("📆 Daily exchange limits? No – you can exchange as much as you want.", 
-     "That flexibility is great for high‑volume traders."),
-    ("📊 The reward tiers are updated regularly – stay tuned for more.", 
-     "Yes, they might add higher tiers or bonuses – keep an eye out."),
-    ("🔐 Your funds are safe – we use bank‑grade security.", 
-     "That gives me confidence to exchange larger amounts."),
-    ("📲 Instant notifications – you'll know when rewards are credited.", 
-     "Yes, the system sends alerts. It's transparent and fast."),
-    ("🤖 The registration is quick – just use the official link.", 
-     "I registered in 2 minutes. The process is smooth."),
-    ("📞 Support is available 24/7 via @jetlee261 – they're helpful.", 
-     "They answered all my questions promptly. Great service."),
-    ("🏁 Start with a small exchange to test the system – then go big.", 
-     "That's a good strategy. Once you see the rewards, you'll want to exchange more."),
-    ("💰 The reward bonus is credited instantly after exchange.", 
-     "Yes, no waiting. It's automatic – you see the balance update."),
-    ("🌍 This is a global opportunity – users from many countries are joining.", 
-     "The platform is international, but INR rewards are great for Indian users."),
-    ("📌 Bookmark the official link: https://wallet.paisa-base.com/register?inviteCode=phar6p", 
-     "I've saved it – easy to access anytime."),
-    ("🏆 The top earners are exchanging 6000+ USDT daily – they get ₹15,000 every time!", 
-     "That's serious income potential. It's worth building up to that level."),
-    ("💬 Have questions? DM @jetlee261 – they'll guide you step by step.", 
-     "Yes, they even provide strategy tips to maximise your rewards."),
+    (
+        "💰 USDT exchange rewards are live! Have you seen the new rates?",
+        "Yes! USDT is at 108.5 – that's a great rate to exchange right now.",
+    ),
+    (
+        "🏆 Did you know you can earn up to ₹15,000 bonus on exchanges?",
+        "Absolutely – the more you exchange, the higher the reward. It's tiered!",
+    ),
+    (
+        "📊 If you exchange 100 USDT+, you get ₹80 reward instantly.",
+        "That's a nice bonus on top of the competitive rate.",
+    ),
+    (
+        "🔥 400 USDT+ gives you ₹400 – that's a 1% reward!",
+        "And it scales up – 1000 USDT gives ₹1,200.",
+    ),
+    (
+        "💎 Exchange 2000 USDT and get ₹3,000 reward!",
+        "Yes, and at 4000 USDT it's ₹8,000.",
+    ),
+    (
+        "🏅 The top tier: 6000 USDT+ unlocks ₹15,000 bonus!",
+        "That's the highest reward tier available.",
+    ),
+    (
+        "🔔 The official registration link is available.",
+        "The registration process is simple and quick.",
+    ),
+    (
+        "🤝 Invite your friends and build your team.",
+        "Active referrals can help grow the community.",
+    ),
+    (
+        "📩 For more details, contact @jetlee261.",
+        "They can provide additional information.",
+    ),
+    (
+        "🚀 USDT is widely used for digital transactions.",
+        "The exchange offer includes additional reward tiers.",
+    ),
+    (
+        "⏰ The current offer is available for a limited period.",
+        "It's worth checking the available reward conditions.",
+    ),
+    (
+        "📈 The current USDT exchange rate is 108.5.",
+        "Always verify the current rate before making a transaction.",
+    ),
+    (
+        "🎯 Higher exchange amounts unlock higher reward tiers.",
+        "The reward structure increases based on volume.",
+    ),
+    (
+        "💬 The community continues to grow.",
+        "You can contact support for additional information.",
+    ),
+    (
+        "🔄 Exchange more, unlock higher reward levels.",
+        "The rewards are based on the applicable exchange tier.",
+    ),
 ]
+
+
+# =========================================================
+# FINAL MESSAGES
+# =========================================================
 
 FINAL_CALL_A = (
     "USDT EXCHANGE REWARDS ARE LIVE! 🔄\n\n"
-    "🏆🏆🏆 USDT Rate: 1️⃣0️⃣8️⃣🔤5️⃣\n\n"
-    "📌Enjoy a competitive rate while unlocking extra exchange rewards!\n\n"
-    "OFFICIAL LINK : \n\n"
+    "🏆 USDT Rate: 108.5\n\n"
+    "📌 OFFICIAL LINK:\n\n"
     "https://wallet.paisa-base.com/register?inviteCode=phar6p\n\n"
-    "🔔🔔🔔Exchange More, Earn More!\n\n"
-    "☄️Your rewards are waiting:\n"
+    "🔔 Exchange More, Earn More!\n\n"
+    "☄️ Reward tiers:\n"
     "⭐️ 100 USDT+ → ₹80 Reward\n"
     "⭐️ 400 USDT+ → ₹400 Reward\n"
     "⭐️ 1000 USDT+ → ₹1,200 Reward\n"
     "⭐️ 2000 USDT+ → ₹3,000 Reward\n"
     "⭐️ 4000 USDT+ → ₹8,000 Reward\n"
-    "🏆 6000 USDT+ → ₹15,000 Reward\n"
-    "✔️Unlock up to ₹15,000 bonus reward with 6000+ USDT exchange!\n"
-    "🤝 Invite your friends, build your team, and start working today!\n"
-    "📩 DM for details & join now!@jetlee261  ✅"
+    "🏆 6000 USDT+ → ₹15,000 Reward\n\n"
+    "📩 DM @jetlee261 for details!"
 )
 
 FINAL_CALL_B = (
-    "💬 That's an amazing offer! Contact @jetlee261 right now to get started.\n"
-    "Don't miss out on these rewards – exchange USDT and earn big! 🚀"
+    "💬 Contact @jetlee261 for more information.\n\n"
+    "Check the current terms before participating. 🚀"
 )
 
-# ---------- GROUP ID PERSISTENCE ----------
+
+# =========================================================
+# GROUP ID STORAGE
+# =========================================================
+
 def load_group_ids():
+    """Load all saved group IDs."""
+
     try:
-        with open(GROUP_IDS_FILE, "r") as f:
-            return [int(line.strip()) for line in f if line.strip().isdigit()]
+        group_ids = []
+
+        with open(
+            GROUP_IDS_FILE,
+            "r",
+            encoding="utf-8",
+        ) as file:
+
+            for line in file:
+                line = line.strip()
+
+                if not line:
+                    continue
+
+                try:
+                    group_ids.append(int(line))
+
+                except ValueError:
+                    logger.warning(
+                        f"Ignoring invalid group ID: {line}"
+                    )
+
+        return group_ids
+
     except FileNotFoundError:
         return []
 
+
 def save_group_id(chat_id):
-    ids = load_group_ids()
-    if chat_id not in ids:
-        ids.append(chat_id)
-        with open(GROUP_IDS_FILE, "w") as f:
-            for cid in ids:
-                f.write(f"{cid}\n")
+    """Save a group ID if it is not already saved."""
 
-async def send_to_groups(context_a, context_b, text_a, text_b=None):
-    for cid in load_group_ids():
-        if text_a:
-            try:
-                await context_a.bot.send_message(chat_id=cid, text=text_a, parse_mode="HTML")
-            except Exception as e:
-                logger.error(f"Bot A failed to send to {cid}: {e}")
-        if text_b:
-            try:
-                await context_b.bot.send_message(chat_id=cid, text=text_b, parse_mode="HTML")
-            except Exception as e:
-                logger.error(f"Bot B failed to send to {cid}: {e}")
+    group_ids = load_group_ids()
 
-# ---------- DAILY SESSION ----------
-async def daily_session(app_a, app_b, test_mode=False):
-    if test_mode:
-        min_wait, max_wait = 5, 10
-        pairs = random.sample(CONVERSATION_PAIRS, min(3, len(CONVERSATION_PAIRS)))
-    else:
-        min_wait, max_wait = 60, 180
-        today_seed = datetime.now().date().toordinal()
-        random.seed(today_seed)
-        shuffled = random.sample(CONVERSATION_PAIRS, len(CONVERSATION_PAIRS))
-        pairs = shuffled[:15]
+    if chat_id not in group_ids:
 
-    for idx, (msg_a, msg_b) in enumerate(pairs):
-        await send_to_groups(app_a, app_b, msg_a, None)
-        wait = random.randint(min_wait, max_wait)
-        logger.info(f"Bot A sent, waiting {wait}s for Bot B")
-        await asyncio.sleep(wait)
+        group_ids.append(chat_id)
 
-        await send_to_groups(app_a, app_b, None, msg_b)
-        if idx < len(pairs) - 1:
-            wait = random.randint(min_wait, max_wait)
-            logger.info(f"Bot B replied, waiting {wait}s for next pair")
-            await asyncio.sleep(wait)
+        with open(
+            GROUP_IDS_FILE,
+            "w",
+            encoding="utf-8",
+        ) as file:
 
-    await asyncio.sleep(5)
-    await send_to_groups(app_a, app_b, FINAL_CALL_A, FINAL_CALL_B)
-    logger.info("Daily session completed.")
+            for group_id in group_ids:
+                file.write(f"{group_id}\n")
 
-def start_daily_session():
-    global APP_A, APP_B
-    asyncio.create_task(daily_session(APP_A, APP_B, test_mode=False))
-
-# ---------- HANDLERS ----------
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "🤖 USDT Exchange Rewards Bot is active!\n"
-        "We'll talk about exchange opportunities and rewards.\n"
-        "Use /test to see a quick demo right now."
-    )
-
-async def add_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = update.effective_chat
-    if chat.type in ["group", "supergroup"]:
-        save_group_id(chat.id)
-        await update.message.reply_text("✅ This group is now registered for daily broadcasts.")
-    else:
-        await update.message.reply_text("Please add me to a group first.")
-
-async def new_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = update.effective_chat
-    if chat.type in ["group", "supergroup"]:
-        save_group_id(chat.id)
-        await context.bot.send_message(
-            chat_id=chat.id,
-            text="🎉 Thanks for adding us! We'll share insights on USDT exchange rewards.\nUse /test for a quick demo."
+        logger.info(
+            f"Saved group ID: {chat_id}"
         )
 
-async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    await context.bot.send_message(chat_id, "🧪 Test session started! (3 exchanges + final)")
-    global APP_B
-    app_a = context.application
-    app_b = APP_B
-    
-    pairs = random.sample(CONVERSATION_PAIRS, min(3, len(CONVERSATION_PAIRS)))
-    for msg_a, msg_b in pairs:
-        await app_a.bot.send_message(chat_id, msg_a)
-        await asyncio.sleep(5)
-        await app_b.bot.send_message(chat_id, msg_b)
-        await asyncio.sleep(5)
-    
-    await app_a.bot.send_message(chat_id, FINAL_CALL_A)
-    await asyncio.sleep(3)
-    await app_b.bot.send_message(chat_id, FINAL_CALL_B)
-    await context.bot.send_message(chat_id, "✅ Test complete! Daily session will run at scheduled time.")
 
-# ---------- RUN A SINGLE BOT (in its own thread) ----------
-def run_bot(token, is_bot_a=False):
-    """Run a single bot's Application.run_polling() in a thread."""
-    app = Application.builder().token(token).build()
-    
-    # Register handlers
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("addgroup", add_group))
-    app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_group))
-    
-    if is_bot_a:
-        app.add_handler(CommandHandler("test", test_handler))
-        global APP_A
-        APP_A = app
-    else:
-        global APP_B
-        APP_B = app
-    
-    # Clear webhook before starting
-    try:
-        asyncio.run(app.bot.delete_webhook())
-        logger.info(f"Webhook cleared for bot {'A' if is_bot_a else 'B'}")
-    except Exception as e:
-        logger.warning(f"Could not delete webhook: {e}")
-    
-    # Run the bot – this blocks forever
-    logger.info(f"Bot {'A' if is_bot_a else 'B'} starting polling...")
-    app.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
+# =========================================================
+# SEND MESSAGES
+# =========================================================
 
-# ---------- SCHEDULER THREAD ----------
-def run_scheduler():
-    """Run the APScheduler in a separate thread."""
-    scheduler = AsyncIOScheduler(timezone="UTC")
-    scheduler.add_job(
-        start_daily_session,
-        "cron",
-        hour=10,
-        minute=40,
-        id="daily_session"
+async def send_to_groups(
+    text_a=None,
+    text_b=None,
+):
+    """Send messages from Bot A and/or Bot B."""
+
+    if APP_A is None or APP_B is None:
+        logger.error(
+            "Bots are not ready yet."
+        )
+        return
+
+    group_ids = load_group_ids()
+
+    if not group_ids:
+        logger.warning(
+            "No groups have been registered."
+        )
+        return
+
+    for chat_id in group_ids:
+
+        if text_a:
+
+            try:
+                await APP_A.bot.send_message(
+                    chat_id=chat_id,
+                    text=text_a,
+                )
+
+                logger.info(
+                    f"Bot A sent message to {chat_id}"
+                )
+
+            except Exception as error:
+
+                logger.error(
+                    f"Bot A failed to send to "
+                    f"{chat_id}: {error}"
+                )
+
+        if text_b:
+
+            try:
+                await APP_B.bot.send_message(
+                    chat_id=chat_id,
+                    text=text_b,
+                )
+
+                logger.info(
+                    f"Bot B sent message to {chat_id}"
+                )
+
+            except Exception as error:
+
+                logger.error(
+                    f"Bot B failed to send to "
+                    f"{chat_id}: {error}"
+                )
+
+
+# =========================================================
+# CHAT SESSION
+# =========================================================
+
+async def daily_session(test_mode=False):
+
+    logger.info(
+        "========================================"
     )
-    scheduler.start()
-    logger.info("Scheduler started. Daily session at 10:40 UTC.")
-    
-    # Keep the scheduler thread alive
-    while True:
-        time.sleep(60)
 
-# ---------- MAIN ----------
+    logger.info(
+        "CHAT SESSION STARTED"
+    )
+
+    logger.info(
+        "========================================"
+    )
+
+    if test_mode:
+
+        min_wait = 5
+        max_wait = 10
+
+        pairs = random.sample(
+            CONVERSATION_PAIRS,
+            min(
+                3,
+                len(CONVERSATION_PAIRS),
+            ),
+        )
+
+    else:
+
+        # Normal chat timing
+        min_wait = 60
+        max_wait = 180
+
+        # Select up to 15 conversations
+        pairs = random.sample(
+            CONVERSATION_PAIRS,
+            min(
+                15,
+                len(CONVERSATION_PAIRS),
+            ),
+        )
+
+    for index, (
+        message_a,
+        message_b,
+    ) in enumerate(pairs):
+
+        # -------------------------------------
+        # BOT A SENDS
+        # -------------------------------------
+
+        await send_to_groups(
+            text_a=message_a,
+        )
+
+        wait_time = random.randint(
+            min_wait,
+            max_wait,
+        )
+
+        logger.info(
+            f"Bot A sent message. "
+            f"Waiting {wait_time} seconds."
+        )
+
+        await asyncio.sleep(
+            wait_time
+        )
+
+        # -------------------------------------
+        # BOT B REPLIES
+        # -------------------------------------
+
+        await send_to_groups(
+            text_b=message_b,
+        )
+
+        # -------------------------------------
+        # WAIT BEFORE NEXT PAIR
+        # -------------------------------------
+
+        if index < len(pairs) - 1:
+
+            wait_time = random.randint(
+                min_wait,
+                max_wait,
+            )
+
+            logger.info(
+                f"Bot B replied. "
+                f"Waiting {wait_time} seconds."
+            )
+
+            await asyncio.sleep(
+                wait_time
+            )
+
+    # -----------------------------------------
+    # FINAL MESSAGES
+    # -----------------------------------------
+
+    await asyncio.sleep(5)
+
+    await send_to_groups(
+        text_a=FINAL_CALL_A,
+    )
+
+    await asyncio.sleep(3)
+
+    await send_to_groups(
+        text_b=FINAL_CALL_B,
+    )
+
+    logger.info(
+        "========================================"
+    )
+
+    logger.info(
+        "CHAT SESSION COMPLETED"
+    )
+
+    logger.info(
+        "========================================"
+    )
+
+
+# =========================================================
+# BOT HANDLERS
+# =========================================================
+
+async def start(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+
+    if update.message:
+
+        await update.message.reply_text(
+            "🤖 Bot is active!\n\n"
+            "Use /addgroup to register this group.\n"
+            "Use /test to start a test session."
+        )
+
+
+async def add_group(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+
+    chat = update.effective_chat
+
+    if not chat:
+        return
+
+    if chat.type in (
+        "group",
+        "supergroup",
+    ):
+
+        save_group_id(
+            chat.id
+        )
+
+        if update.message:
+
+            await update.message.reply_text(
+                "✅ This group has been registered."
+            )
+
+    else:
+
+        if update.message:
+
+            await update.message.reply_text(
+                "❌ Please run this command inside a group."
+            )
+
+
+async def new_group(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+
+    chat = update.effective_chat
+
+    if not chat:
+        return
+
+    if chat.type in (
+        "group",
+        "supergroup",
+    ):
+
+        save_group_id(
+            chat.id
+        )
+
+        try:
+
+            await context.bot.send_message(
+                chat_id=chat.id,
+                text=(
+                    "🎉 Thanks for adding the bot!\n\n"
+                    "This group has been registered."
+                ),
+            )
+
+        except Exception as error:
+
+            logger.error(
+                f"Could not send welcome message: {error}"
+            )
+
+
+async def test_handler(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+
+    if APP_A is None or APP_B is None:
+
+        if update.message:
+
+            await update.message.reply_text(
+                "⚠️ Bots are still starting."
+            )
+
+        return
+
+    chat = update.effective_chat
+
+    if not chat:
+        return
+
+    chat_id = chat.id
+
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=(
+            "🧪 Test session started!"
+        ),
+    )
+
+    pairs = random.sample(
+        CONVERSATION_PAIRS,
+        min(
+            3,
+            len(CONVERSATION_PAIRS),
+        ),
+    )
+
+    for message_a, message_b in pairs:
+
+        await APP_A.bot.send_message(
+            chat_id=chat_id,
+            text=message_a,
+        )
+
+        await asyncio.sleep(5)
+
+        await APP_B.bot.send_message(
+            chat_id=chat_id,
+            text=message_b,
+        )
+
+        await asyncio.sleep(5)
+
+    await APP_A.bot.send_message(
+        chat_id=chat_id,
+        text=FINAL_CALL_A,
+    )
+
+    await asyncio.sleep(3)
+
+    await APP_B.bot.send_message(
+        chat_id=chat_id,
+        text=FINAL_CALL_B,
+    )
+
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text="✅ Test complete!",
+    )
+
+
+# =========================================================
+# MAIN APPLICATION (FIXED)
+# =========================================================
+
+async def main():
+
+    global APP_A
+    global APP_B
+
+    logger.info(
+        "========================================"
+    )
+
+    logger.info(
+        "STARTING BOT A AND BOT B"
+    )
+
+    logger.info(
+        "========================================"
+    )
+
+    # -----------------------------------------
+    # CREATE APPLICATIONS
+    # -----------------------------------------
+
+    APP_A = (
+        Application.builder()
+        .token(TOKEN_A)
+        .build()
+    )
+
+    APP_B = (
+        Application.builder()
+        .token(TOKEN_B)
+        .build()
+    )
+
+    # -----------------------------------------
+    # BOT A HANDLERS
+    # -----------------------------------------
+
+    APP_A.add_handler(
+        CommandHandler(
+            "start",
+            start,
+        )
+    )
+
+    APP_A.add_handler(
+        CommandHandler(
+            "addgroup",
+            add_group,
+        )
+    )
+
+    APP_A.add_handler(
+        CommandHandler(
+            "test",
+            test_handler,
+        )
+    )
+
+    APP_A.add_handler(
+        MessageHandler(
+            filters.StatusUpdate.NEW_CHAT_MEMBERS,
+            new_group,
+        )
+    )
+
+    # -----------------------------------------
+    # BOT B HANDLERS
+    # -----------------------------------------
+
+    APP_B.add_handler(
+        CommandHandler(
+            "start",
+            start,
+        )
+    )
+
+    APP_B.add_handler(
+        CommandHandler(
+            "addgroup",
+            add_group,
+        )
+    )
+
+    APP_B.add_handler(
+        MessageHandler(
+            filters.StatusUpdate.NEW_CHAT_MEMBERS,
+            new_group,
+        )
+    )
+
+    # -----------------------------------------
+    # INITIALIZE BOTH BOTS
+    # -----------------------------------------
+
+    logger.info(
+        "Initializing Bot A..."
+    )
+
+    await APP_A.initialize()
+
+    logger.info(
+        "Initializing Bot B..."
+    )
+
+    await APP_B.initialize()
+
+    # -----------------------------------------
+    # CLEAR WEBHOOKS
+    # -----------------------------------------
+
+    await APP_A.bot.delete_webhook(
+        drop_pending_updates=True
+    )
+
+    await APP_B.bot.delete_webhook(
+        drop_pending_updates=True
+    )
+
+    # -----------------------------------------
+    # START APPLICATIONS
+    # -----------------------------------------
+
+    await APP_A.start()
+
+    await APP_B.start()
+
+    logger.info(
+        "Applications started."
+    )
+
+    # =====================================================
+    # SCHEDULER – Start it BEFORE polling
+    # =====================================================
+
+    scheduler = AsyncIOScheduler(
+        timezone="UTC"
+    )
+
+    scheduler.add_job(
+        daily_session,
+        trigger="interval",
+        hours=3,
+        id="chat_session",
+        replace_existing=True,
+        max_instances=1,          # Prevent overlapping sessions
+        coalesce=True,            # Combine missed runs
+        kwargs={
+            "test_mode": False,
+        },
+    )
+
+    scheduler.start()
+
+    logger.info(
+        "Scheduler started. Chat session will run every 3 hours."
+    )
+
+    # -----------------------------------------
+    # Start first session immediately
+    # -----------------------------------------
+
+    asyncio.create_task(
+        daily_session(
+            test_mode=False
+        )
+    )
+
+    logger.info(
+        "First chat session started immediately."
+    )
+
+    # =====================================================
+    # START POLLING FOR BOTH BOTS CONCURRENTLY
+    # =====================================================
+
+    logger.info(
+        "Starting polling for both bots..."
+    )
+
+    try:
+
+        await asyncio.gather(
+            APP_A.updater.start_polling(
+                allowed_updates=Update.ALL_TYPES,
+                drop_pending_updates=True,
+            ),
+            APP_B.updater.start_polling(
+                allowed_updates=Update.ALL_TYPES,
+                drop_pending_updates=True,
+            ),
+        )
+
+    except asyncio.CancelledError:
+
+        logger.info(
+            "Application shutdown requested."
+        )
+
+    finally:
+
+        logger.info(
+            "Shutting down..."
+        )
+
+        # Stop scheduler
+        scheduler.shutdown(
+            wait=False
+        )
+
+        # Stop polling
+        await APP_A.updater.stop()
+
+        await APP_B.updater.stop()
+
+        # Stop applications
+        await APP_A.stop()
+
+        await APP_B.stop()
+
+        # Shutdown applications
+        await APP_A.shutdown()
+
+        await APP_B.shutdown()
+
+        logger.info(
+            "Shutdown complete."
+        )
+
+
+# =========================================================
+# RUN
+# =========================================================
+
 if __name__ == "__main__":
-    logger.info("Starting both bots in separate threads...")
-    
-    # Start the scheduler in its own thread
-    scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
-    scheduler_thread.start()
-    
-    # Start Bot A in a thread
-    bot_a_thread = threading.Thread(target=run_bot, args=(TOKEN_A, True), daemon=True)
-    bot_a_thread.start()
-    
-    # Start Bot B in a thread
-    bot_b_thread = threading.Thread(target=run_bot, args=(TOKEN_B, False), daemon=True)
-    bot_b_thread.start()
-    
-    # Wait for the scheduler thread to finish (it won't)
-    scheduler_thread.join()
+
+    try:
+
+        asyncio.run(
+            main()
+        )
+
+    except KeyboardInterrupt:
+
+        logger.info(
+            "Bot stopped manually."
+        )
+
+    except Exception as error:
+
+        logger.exception(
+            f"Fatal error: {error}"
+        )
