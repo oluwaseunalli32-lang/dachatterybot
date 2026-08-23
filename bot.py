@@ -3,6 +3,8 @@ import logging
 import random
 import os
 import sys
+import threading
+import time
 from datetime import datetime
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
@@ -19,6 +21,8 @@ if not TOKEN_A or not TOKEN_B:
     sys.exit(1)
 
 GROUP_IDS_FILE = "group_ids.txt"
+APP_A = None
+APP_B = None
 
 # ---------- CONVERSATION PAIRS ----------
 CONVERSATION_PAIRS = [
@@ -167,8 +171,9 @@ async def daily_session(app_a, app_b, test_mode=False):
     await send_to_groups(app_a, app_b, FINAL_CALL_A, FINAL_CALL_B)
     logger.info("Daily session completed.")
 
-def start_daily_session(app_a, app_b):
-    asyncio.create_task(daily_session(app_a, app_b, test_mode=False))
+def start_daily_session():
+    global APP_A, APP_B
+    asyncio.create_task(daily_session(APP_A, APP_B, test_mode=False))
 
 # ---------- HANDLERS ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -214,76 +219,68 @@ async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await app_b.bot.send_message(chat_id, FINAL_CALL_B)
     await context.bot.send_message(chat_id, "✅ Test complete! Daily session will run at scheduled time.")
 
-# ---------- MAIN (Simple, NO restart loops) ----------
-async def main():
-    global APP_B
+# ---------- RUN A SINGLE BOT (in its own thread) ----------
+def run_bot(token, is_bot_a=False):
+    """Run a single bot's Application.run_polling() in a thread."""
+    app = Application.builder().token(token).build()
     
-    # Build applications
-    app_a = Application.builder().token(TOKEN_A).build()
-    app_b = Application.builder().token(TOKEN_B).build()
-    APP_B = app_b
+    # Register handlers
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("addgroup", add_group))
+    app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_group))
     
-    # Clear webhooks to avoid stale connections
+    if is_bot_a:
+        app.add_handler(CommandHandler("test", test_handler))
+        global APP_A
+        APP_A = app
+    else:
+        global APP_B
+        APP_B = app
+    
+    # Clear webhook before starting
     try:
-        await app_a.bot.delete_webhook()
-        await app_b.bot.delete_webhook()
-        logger.info("Webhooks cleared.")
+        asyncio.run(app.bot.delete_webhook())
+        logger.info(f"Webhook cleared for bot {'A' if is_bot_a else 'B'}")
     except Exception as e:
         logger.warning(f"Could not delete webhook: {e}")
     
-    # Register handlers
-    for app in (app_a, app_b):
-        app.add_handler(CommandHandler("start", start))
-        app.add_handler(CommandHandler("addgroup", add_group))
-        app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_group))
-    
-    app_a.add_handler(CommandHandler("test", test_handler))
-    
-    # Initialize and start apps
-    await app_a.initialize()
-    await app_b.initialize()
-    await app_a.start()
-    await app_b.start()
-    
-    # Schedule daily session at 10:40 UTC (updated)
+    # Run the bot – this blocks forever
+    logger.info(f"Bot {'A' if is_bot_a else 'B'} starting polling...")
+    app.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
+
+# ---------- SCHEDULER THREAD ----------
+def run_scheduler():
+    """Run the APScheduler in a separate thread."""
     scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(
         start_daily_session,
         "cron",
         hour=10,
-        minute=40,          # <-- 10:40 UTC
-        args=[app_a, app_b]
+        minute=40,
+        id="daily_session"
     )
     scheduler.start()
+    logger.info("Scheduler started. Daily session at 10:40 UTC.")
     
-    logger.info("Both bots started. Daily session scheduled at 10:40 UTC. Press Ctrl+C to stop.")
-    
-    # Run both bots – this will block forever.
-    try:
-        await asyncio.gather(
-            app_a.updater.start_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True),
-            app_b.updater.start_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
-        )
-    except asyncio.CancelledError:
-        logger.info("Cancelled, shutting down...")
-    except Exception as e:
-        logger.error(f"Fatal polling error: {e}", exc_info=True)
-        raise  # Let Render restart the worker
-    finally:
-        # Clean shutdown
-        logger.info("Stopping polling...")
-        await app_a.updater.stop()
-        await app_b.updater.stop()
-        logger.info("Stopping apps...")
-        await app_a.stop()
-        await app_b.stop()
-        logger.info("Shutting down...")
-        await app_a.shutdown()
-        await app_b.shutdown()
-        logger.info("Shutdown complete.")
+    # Keep the scheduler thread alive
+    while True:
+        time.sleep(60)
 
+# ---------- MAIN ----------
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Process terminated.")
+    logger.info("Starting both bots in separate threads...")
+    
+    # Start the scheduler in its own thread
+    scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
+    scheduler_thread.start()
+    
+    # Start Bot A in a thread
+    bot_a_thread = threading.Thread(target=run_bot, args=(TOKEN_A, True), daemon=True)
+    bot_a_thread.start()
+    
+    # Start Bot B in a thread
+    bot_b_thread = threading.Thread(target=run_bot, args=(TOKEN_B, False), daemon=True)
+    bot_b_thread.start()
+    
+    # Wait for the scheduler thread to finish (it won't)
+    scheduler_thread.join()
