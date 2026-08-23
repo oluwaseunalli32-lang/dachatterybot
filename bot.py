@@ -3,7 +3,6 @@ import logging
 import os
 import random
 import threading
-import time
 from pathlib import Path
 
 from telegram import Update
@@ -933,17 +932,21 @@ def configure_application(application):
 
 
 # =========================================================
-# THREADED BOT RUNNERS
+# THREADED BOT RUNNERS (with event loop)
 # =========================================================
 
 def run_bot_a():
-    """Run Bot A in its own thread."""
+    """Run Bot A in its own thread with a dedicated event loop."""
     global APP_A
+
+    # Create and set an event loop for this thread
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
     APP_A = Application.builder().token(TOKEN_A).build()
     configure_application(APP_A)
 
-    # Clear webhook and start polling (this blocks)
+    # This will use the event loop we just set
     APP_A.run_polling(
         allowed_updates=Update.ALL_TYPES,
         drop_pending_updates=True,
@@ -951,13 +954,17 @@ def run_bot_a():
 
 
 def run_bot_b():
-    """Run Bot B in its own thread."""
+    """Run Bot B in its own thread with a dedicated event loop."""
     global APP_B
+
+    # Create and set an event loop for this thread
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
     APP_B = Application.builder().token(TOKEN_B).build()
     configure_application(APP_B)
 
-    # Clear webhook and start polling (this blocks)
+    # This will use the event loop we just set
     APP_B.run_polling(
         allowed_updates=Update.ALL_TYPES,
         drop_pending_updates=True,
@@ -970,7 +977,7 @@ def run_bot_b():
 
 def main():
     logger.info("========================================")
-    logger.info("STARTING TWO-BOT SYSTEM (THREADED)")
+    logger.info("STARTING TWO-BOT SYSTEM (THREADED + EVENT LOOP)")
     logger.info("========================================")
 
     # Start Bot A in its own thread
@@ -990,7 +997,7 @@ def main():
         thread_b.join()
     except KeyboardInterrupt:
         logger.info("Shutdown requested.")
-        # The daemon threads will exit automatically
+        # Daemon threads will exit automatically
 
 
 # =========================================================
