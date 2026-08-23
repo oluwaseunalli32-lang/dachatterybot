@@ -49,8 +49,6 @@ APP_B = None
 
 SESSION_INTERVAL = 3 * 60 * 60  # 3 hours
 
-TEST_WAIT = 5
-
 # Each group gets its own running task.
 GROUP_SESSION_TASKS = {}
 
@@ -630,10 +628,6 @@ async def start_command(
     if not chat:
         return
 
-    # ---------------------------------------------
-    # Only allow groups
-    # ---------------------------------------------
-
     if chat.type not in (
         "group",
         "supergroup",
@@ -649,15 +643,7 @@ async def start_command(
 
     chat_id = chat.id
 
-    # ---------------------------------------------
-    # Save group
-    # ---------------------------------------------
-
     save_group_id(chat_id)
-
-    # ---------------------------------------------
-    # Start session
-    # ---------------------------------------------
 
     started = await start_group_session(
         chat_id
@@ -739,10 +725,6 @@ async def test_command(
         return
 
     chat_id = chat.id
-
-    # ---------------------------------------------
-    # Don't allow test to overlap with normal cycle
-    # ---------------------------------------------
 
     existing_task = GROUP_SESSION_TASKS.get(
         chat_id
@@ -932,7 +914,7 @@ def configure_application(application):
 
 
 # =========================================================
-# THREADED BOT RUNNERS (with event loop)
+# THREADED BOT RUNNERS (with signal handlers disabled)
 # =========================================================
 
 def run_bot_a():
@@ -942,6 +924,9 @@ def run_bot_a():
     # Create and set an event loop for this thread
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+
+    # Disable signal handlers – they only work in the main thread
+    loop.set_signal_handlers(False)
 
     APP_A = Application.builder().token(TOKEN_A).build()
     configure_application(APP_A)
@@ -961,6 +946,9 @@ def run_bot_b():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
+    # Disable signal handlers – they only work in the main thread
+    loop.set_signal_handlers(False)
+
     APP_B = Application.builder().token(TOKEN_B).build()
     configure_application(APP_B)
 
@@ -977,7 +965,7 @@ def run_bot_b():
 
 def main():
     logger.info("========================================")
-    logger.info("STARTING TWO-BOT SYSTEM (THREADED + EVENT LOOP)")
+    logger.info("STARTING TWO-BOT SYSTEM (THREADED + SIGNAL DISABLED)")
     logger.info("========================================")
 
     # Start Bot A in its own thread
