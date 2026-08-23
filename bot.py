@@ -20,7 +20,7 @@ if not TOKEN_A or not TOKEN_B:
 
 GROUP_IDS_FILE = "group_ids.txt"
 
-# ---------- CONVERSATION PAIRS (about USDT exchange and rewards) ----------
+# ---------- CONVERSATION PAIRS (about USDT exchange) ----------
 CONVERSATION_PAIRS = [
     ("💰 USDT exchange rewards are live! Have you seen the new rates?", 
      "Yes! USDT is at 108.5 – that's a great rate to exchange right now."),
@@ -216,11 +216,11 @@ async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await app_b.bot.send_message(chat_id, FINAL_CALL_B)
     await context.bot.send_message(chat_id, "✅ Test complete! Daily session will run at scheduled time.")
 
-# ---------- MAIN (Fixed: Stop updater before restart) ----------
+# ---------- MAIN (Robust restart) ----------
 async def main():
     global APP_B
     
-    # Build applications (once)
+    # Build applications
     app_a = Application.builder().token(TOKEN_A).build()
     app_b = Application.builder().token(TOKEN_B).build()
     APP_B = app_b
@@ -233,13 +233,13 @@ async def main():
     
     app_a.add_handler(CommandHandler("test", test_handler))
     
-    # Initialize and start apps (once)
+    # Initialize and start apps
     await app_a.initialize()
     await app_b.initialize()
     await app_a.start()
     await app_b.start()
     
-    # Schedule daily session at 10:20 AM UTC (as requested)
+    # Schedule daily session at 10:20 UTC
     scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(
         start_daily_session,
@@ -252,53 +252,50 @@ async def main():
     
     logger.info("Both bots started. Daily session scheduled at 10:20 UTC. Press Ctrl+C to stop.")
     
-    # Keep the bots running with proper restart logic
+    # Main polling loop with proper cleanup and restart
     while True:
-        # Create polling tasks
-        poll_a = asyncio.create_task(app_a.updater.start_polling(allowed_updates=Update.ALL_TYPES))
-        poll_b = asyncio.create_task(app_b.updater.start_polling(allowed_updates=Update.ALL_TYPES))
-        
+        polling_running = True
         try:
-            # Wait for either task to finish (should never happen normally)
+            # Start polling tasks
+            poll_a = asyncio.create_task(app_a.updater.start_polling(allowed_updates=Update.ALL_TYPES))
+            poll_b = asyncio.create_task(app_b.updater.start_polling(allowed_updates=Update.ALL_TYPES))
+            
+            # Wait for either to finish (they shouldn't)
             await asyncio.gather(poll_a, poll_b)
-            # If we get here, polling stopped unexpectedly
-            logger.warning("Polling stopped unexpectedly. Restarting in 5 seconds...")
-            await asyncio.sleep(5)
+            # If we get here, something stopped polling
+            logger.warning("Polling tasks finished unexpectedly.")
+            polling_running = False
         except asyncio.CancelledError:
-            logger.info("Cancellation received, shutting down...")
-            # Cancel polling tasks
-            poll_a.cancel()
-            poll_b.cancel()
+            logger.info("Polling cancelled, shutting down.")
             break
         except Exception as e:
             logger.error(f"Polling error: {e}", exc_info=True)
-            # Cancel any remaining tasks
-            if not poll_a.done():
-                poll_a.cancel()
-            if not poll_b.done():
-                poll_b.cancel()
-            # IMPORTANT: Stop the updaters before restarting
+            polling_running = False
+        
+        # If polling stopped (or error), perform cleanup
+        if not polling_running:
+            # Stop the updaters to release the connection
             try:
+                logger.info("Stopping updater A...")
                 await app_a.updater.stop()
             except Exception as stop_err:
                 logger.warning(f"Error stopping updater A: {stop_err}")
             try:
+                logger.info("Stopping updater B...")
                 await app_b.updater.stop()
             except Exception as stop_err:
                 logger.warning(f"Error stopping updater B: {stop_err}")
-            logger.info("Waiting 10 seconds before restarting polling...")
+            
+            # Wait a moment to ensure everything is released
+            logger.info("Waiting 10 seconds before restarting...")
             await asyncio.sleep(10)
-            # Continue the loop to restart (apps are still alive)
+            # Continue the loop to restart polling
             continue
         
-        # If we reach here, gather finished without exception (unlikely)
-        # Restart the loop
-        continue
+        # If we break out of the loop, clean shutdown
+        break
     
-    # --- Clean shutdown (only reached if we break out of the loop) ---
-    logger.info("Stopping polling...")
-    await app_a.updater.stop()
-    await app_b.updater.stop()
+    # --- Clean shutdown ---
     logger.info("Stopping apps...")
     await app_a.stop()
     await app_b.stop()
