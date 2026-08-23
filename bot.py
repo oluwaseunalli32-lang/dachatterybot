@@ -3,6 +3,7 @@ import logging
 import random
 import os
 import sys
+import threading
 from datetime import datetime
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
@@ -214,7 +215,7 @@ async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await app_b.bot.send_message(chat_id, FINAL_CALL_B)
     await context.bot.send_message(chat_id, "✅ Test complete! Daily session will run at scheduled time.")
 
-# ---------- MAIN (Conflict‑proof, 10:35 UTC) ----------
+# ---------- MAIN (Simplified – NO manual restart loop) ----------
 async def main():
     global APP_B
     
@@ -223,7 +224,7 @@ async def main():
     app_b = Application.builder().token(TOKEN_B).build()
     APP_B = app_b
     
-    # Clear any webhooks to avoid conflicts
+    # Clear any webhooks
     try:
         await app_a.bot.delete_webhook()
         await app_b.bot.delete_webhook()
@@ -258,61 +259,28 @@ async def main():
     
     logger.info("Both bots started. Daily session scheduled at 10:35 UTC. Press Ctrl+C to stop.")
     
-    # Main polling loop with conflict handling
-    while True:
-        try:
-            # Start polling tasks
-            poll_a = asyncio.create_task(app_a.updater.start_polling(allowed_updates=Update.ALL_TYPES))
-            poll_b = asyncio.create_task(app_b.updater.start_polling(allowed_updates=Update.ALL_TYPES))
-            
-            # Wait for them to finish (they shouldn't)
-            await asyncio.gather(poll_a, poll_b)
-            # If we get here, they stopped unexpectedly
-            logger.warning("Polling tasks finished unexpectedly.")
-            
-        except asyncio.CancelledError:
-            logger.info("Polling cancelled, shutting down.")
-            break
-        except Exception as e:
-            logger.error(f"Polling error: {e}", exc_info=True)
-            
-            # If it's a Conflict error, we need to force a full restart.
-            if "Conflict" in str(e):
-                logger.critical("Conflict detected – another instance is running. Exiting to let Render restart.")
-                # Stop the updaters and exit
-                try:
-                    await app_a.updater.stop()
-                except:
-                    pass
-                try:
-                    await app_b.updater.stop()
-                except:
-                    pass
-                sys.exit(1)
-            
-            # Otherwise, attempt to restart polling cleanly
-            try:
-                logger.info("Stopping updaters...")
-                await app_a.updater.stop()
-                await app_b.updater.stop()
-            except Exception as stop_err:
-                logger.warning(f"Error stopping updaters: {stop_err}")
-            
-            logger.info("Waiting 10 seconds before restarting polling...")
-            await asyncio.sleep(10)
-            continue
-        
-        # If we get here, restart the loop
-        continue
-    
-    # Clean shutdown
-    logger.info("Stopping apps...")
-    await app_a.stop()
-    await app_b.stop()
-    logger.info("Shutting down...")
-    await app_a.shutdown()
-    await app_b.shutdown()
-    logger.info("Shutdown complete.")
+    # Run both bots – this blocks forever (no restart loop)
+    try:
+        await asyncio.gather(
+            app_a.updater.start_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True),
+            app_b.updater.start_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
+        )
+    except asyncio.CancelledError:
+        logger.info("Cancelled, shutting down...")
+    except Exception as e:
+        logger.error(f"Fatal error: {e}", exc_info=True)
+    finally:
+        # Clean shutdown
+        logger.info("Stopping polling...")
+        await app_a.updater.stop()
+        await app_b.updater.stop()
+        logger.info("Stopping apps...")
+        await app_a.stop()
+        await app_b.stop()
+        logger.info("Shutting down...")
+        await app_a.shutdown()
+        await app_b.shutdown()
+        logger.info("Shutdown complete.")
 
 if __name__ == "__main__":
     try:
