@@ -2,6 +2,8 @@ import asyncio
 import logging
 import os
 import random
+import threading
+import time
 from pathlib import Path
 
 from telegram import Update
@@ -616,7 +618,7 @@ async def stop_group_session(chat_id):
 
 
 # =========================================================
-# /START
+# COMMAND HANDLERS
 # =========================================================
 
 async def start_command(
@@ -683,10 +685,6 @@ async def start_command(
             )
 
 
-# =========================================================
-# /STOP
-# =========================================================
-
 async def stop_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -717,10 +715,6 @@ async def stop_command(
                 "ℹ️ No active session was running."
             )
 
-
-# =========================================================
-# /TEST
-# =========================================================
 
 async def test_command(
     update: Update,
@@ -800,10 +794,6 @@ async def test_command(
             )
 
 
-# =========================================================
-# /STATUS
-# =========================================================
-
 async def status_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -844,10 +834,6 @@ async def status_command(
             status
         )
 
-
-# =========================================================
-# /ADDGROUP
-# =========================================================
 
 async def add_group_command(
     update: Update,
@@ -900,7 +886,7 @@ async def error_handler(
 
 
 # =========================================================
-# ADD HANDLERS
+# CONFIGURE APPLICATION
 # =========================================================
 
 def configure_application(application):
@@ -947,175 +933,64 @@ def configure_application(application):
 
 
 # =========================================================
-# MAIN (FIXED: concurrent polling)
+# THREADED BOT RUNNERS
 # =========================================================
 
-async def main():
-
+def run_bot_a():
+    """Run Bot A in its own thread."""
     global APP_A
-    global APP_B
 
-    logger.info("========================================")
-    logger.info("STARTING TWO-BOT SYSTEM")
-    logger.info("========================================")
-
-    # =====================================================
-    # CREATE BOT A
-    # =====================================================
-
-    APP_A = (
-        Application.builder()
-        .token(TOKEN_A)
-        .build()
-    )
-
+    APP_A = Application.builder().token(TOKEN_A).build()
     configure_application(APP_A)
 
-    # =====================================================
-    # CREATE BOT B
-    # =====================================================
-
-    APP_B = (
-        Application.builder()
-        .token(TOKEN_B)
-        .build()
+    # Clear webhook and start polling (this blocks)
+    APP_A.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True,
     )
 
+
+def run_bot_b():
+    """Run Bot B in its own thread."""
+    global APP_B
+
+    APP_B = Application.builder().token(TOKEN_B).build()
     configure_application(APP_B)
 
-    # =====================================================
-    # INITIALIZE
-    # =====================================================
-
-    logger.info("Initializing Bot A...")
-    await APP_A.initialize()
-
-    logger.info("Initializing Bot B...")
-    await APP_B.initialize()
-
-    # =====================================================
-    # REMOVE WEBHOOKS
-    # =====================================================
-
-    logger.info("Removing Bot A webhook...")
-    await APP_A.bot.delete_webhook(
-        drop_pending_updates=True
+    # Clear webhook and start polling (this blocks)
+    APP_B.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True,
     )
 
-    logger.info("Removing Bot B webhook...")
-    await APP_B.bot.delete_webhook(
-        drop_pending_updates=True
-    )
 
-    # =====================================================
-    # START APPLICATIONS
-    # =====================================================
+# =========================================================
+# MAIN
+# =========================================================
 
-    await APP_A.start()
-    await APP_B.start()
+def main():
+    logger.info("========================================")
+    logger.info("STARTING TWO-BOT SYSTEM (THREADED)")
+    logger.info("========================================")
 
-    logger.info("Both applications started.")
+    # Start Bot A in its own thread
+    thread_a = threading.Thread(target=run_bot_a, daemon=True)
+    thread_a.start()
+    logger.info("Bot A thread started.")
 
-    # =====================================================
-    # START POLLING FOR BOTH BOTS CONCURRENTLY
-    # =====================================================
+    # Start Bot B in its own thread
+    thread_b = threading.Thread(target=run_bot_b, daemon=True)
+    thread_b.start()
+    logger.info("Bot B thread started.")
 
+    # Keep the main thread alive
     try:
-
-        logger.info("Starting polling for both bots...")
-
-        # ✅ FIX: run both polling tasks concurrently
-        await asyncio.gather(
-
-            APP_A.updater.start_polling(
-                allowed_updates=Update.ALL_TYPES,
-                drop_pending_updates=True,
-            ),
-
-            APP_B.updater.start_polling(
-                allowed_updates=Update.ALL_TYPES,
-                drop_pending_updates=True,
-            ),
-
-        )
-
-        # This line is only reached if polling stops (unlikely)
-        logger.warning("Polling stopped unexpectedly.")
-
-    except asyncio.CancelledError:
-
+        # Wait for both threads to finish (they won't)
+        thread_a.join()
+        thread_b.join()
+    except KeyboardInterrupt:
         logger.info("Shutdown requested.")
-
-    finally:
-
-        # =================================================
-        # STOP ALL GROUP SESSIONS
-        # =================================================
-
-        logger.info("Stopping all active group sessions...")
-
-        tasks = list(GROUP_SESSION_TASKS.values())
-
-        for task in tasks:
-
-            if not task.done():
-
-                task.cancel()
-
-        if tasks:
-
-            await asyncio.gather(
-                *tasks,
-                return_exceptions=True,
-            )
-
-        GROUP_SESSION_TASKS.clear()
-
-        # =================================================
-        # STOP POLLING
-        # =================================================
-
-        if APP_A is not None and APP_A.updater is not None and APP_A.updater.running:
-
-            logger.info("Stopping Bot A polling...")
-            await APP_A.updater.stop()
-
-        if APP_B is not None and APP_B.updater is not None and APP_B.updater.running:
-
-            logger.info("Stopping Bot B polling...")
-            await APP_B.updater.stop()
-
-        # =================================================
-        # STOP APPLICATIONS
-        # =================================================
-
-        if APP_A is not None:
-
-            logger.info("Stopping Bot A...")
-            await APP_A.stop()
-
-        if APP_B is not None:
-
-            logger.info("Stopping Bot B...")
-            await APP_B.stop()
-
-        # =================================================
-        # SHUTDOWN
-        # =================================================
-
-        if APP_A is not None:
-
-            logger.info("Shutting down Bot A...")
-            await APP_A.shutdown()
-
-        if APP_B is not None:
-
-            logger.info("Shutting down Bot B...")
-            await APP_B.shutdown()
-
-        logger.info("========================================")
-        logger.info("BOT SYSTEM SHUTDOWN COMPLETE")
-        logger.info("========================================")
+        # The daemon threads will exit automatically
 
 
 # =========================================================
@@ -1123,20 +998,4 @@ async def main():
 # =========================================================
 
 if __name__ == "__main__":
-
-    try:
-
-        asyncio.run(
-            main()
-        )
-
-    except KeyboardInterrupt:
-
-        logger.info("Bot stopped manually.")
-
-    except Exception as error:
-
-        logger.exception(
-            "Fatal error: %s",
-            error,
-        )
+    main()
