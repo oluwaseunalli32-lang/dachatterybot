@@ -24,99 +24,69 @@ GROUP_IDS_FILE = "group_ids.txt"
 CONVERSATION_PAIRS = [
     ("💰 USDT exchange rewards are live! Have you seen the new rates?", 
      "Yes! USDT is at 108.5 – that's a great rate to exchange right now."),
-    
     ("🏆 Did you know you can earn up to ₹15,000 bonus on exchanges?", 
      "Absolutely – the more you exchange, the higher the reward. It's tiered!"),
-    
     ("📊 If you exchange 100 USDT+, you get ₹80 reward instantly.", 
      "That's a nice bonus on top of the competitive rate. Every bit helps."),
-    
     ("🔥 400 USDT+ gives you ₹400 – that's a 1% reward!", 
      "And it scales up – 1000 USDT gives ₹1,200, which is even better."),
-    
     ("💎 Exchange 2000 USDT and get ₹3,000 reward – that's huge!", 
      "Yes, and at 4000 USDT it's ₹8,000 – the rewards keep growing."),
-    
     ("🏅 The top tier: 6000 USDT+ unlocks ₹15,000 bonus! That's massive.", 
      "That's a 2.5% reward – unbeatable in today's market."),
-    
     ("🔔 The official link is live: https://wallet.paisa-base.com/register?inviteCode=phar6p", 
      "I've registered already – the process is smooth and the rewards are credited quickly."),
-    
     ("🤝 Invite your friends and build a team – you earn even more.", 
      "Team building is encouraged. The more active members, the better the ecosystem."),
-    
     ("📩 For details, just DM @jetlee261 – they respond fast.", 
      "Yes, support is top‑notch. They'll guide you through the exchange process."),
-    
     ("🚀 USDT is stable and widely used – exchanging now is a smart move.", 
      "With the bonus rewards, it's a win‑win. You get extra value for your exchange."),
-    
     ("⏰ The offer is time‑limited – don't miss out on these rewards.", 
      "Exactly – early adopters get the best rates and bonuses. Act now."),
-    
     ("📈 The exchange rate is competitive – 108.5 for USDT is above market.", 
      "Yes, you get more INR for your USDT compared to other platforms."),
-    
     ("🎯 Set a target: exchange 6000 USDT and get ₹15,000 – that's a goal!", 
      "It's achievable if you plan your exchanges. Many users are already there."),
-    
     ("💬 The community is growing – join the official channel for updates.", 
      "DM @jetlee261 for the channel link – they share exclusive tips."),
-    
     ("🔄 Exchange more, earn more – that's the motto. It's simple.", 
      "Yes, the tiered structure encourages higher volumes, which benefits everyone."),
-    
     ("🛡️ The platform is secure – your transactions are safe.", 
      "I've used it – no issues. It's reliable and transparent."),
-    
     ("📱 You can exchange from your mobile – it's user‑friendly.", 
      "The dashboard is intuitive. You can track your rewards in real‑time."),
-    
     ("💡 Did you know you can combine exchange rewards with referral bonuses?", 
      "Yes, referrals add extra income – share your invite code and earn."),
-    
     ("🌟 Real users have already earned thousands – check the testimonials.", 
      "I've seen screenshots – the rewards are real and paid out promptly."),
-    
     ("📆 Daily exchange limits? No – you can exchange as much as you want.", 
      "That flexibility is great for high‑volume traders."),
-    
     ("📊 The reward tiers are updated regularly – stay tuned for more.", 
      "Yes, they might add higher tiers or bonuses – keep an eye out."),
-    
     ("🔐 Your funds are safe – we use bank‑grade security.", 
      "That gives me confidence to exchange larger amounts."),
-    
     ("📲 Instant notifications – you'll know when rewards are credited.", 
      "Yes, the system sends alerts. It's transparent and fast."),
-    
     ("🤖 The registration is quick – just use the official link.", 
      "I registered in 2 minutes. The process is smooth."),
-    
     ("📞 Support is available 24/7 via @jetlee261 – they're helpful.", 
      "They answered all my questions promptly. Great service."),
-    
     ("🏁 Start with a small exchange to test the system – then go big.", 
      "That's a good strategy. Once you see the rewards, you'll want to exchange more."),
-    
     ("💰 The reward bonus is credited instantly after exchange.", 
      "Yes, no waiting. It's automatic – you see the balance update."),
-    
     ("🌍 This is a global opportunity – users from many countries are joining.", 
      "The platform is international, but INR rewards are great for Indian users."),
-    
     ("📌 Bookmark the official link: https://wallet.paisa-base.com/register?inviteCode=phar6p", 
      "I've saved it – easy to access anytime."),
-    
     ("🏆 The top earners are exchanging 6000+ USDT daily – they get ₹15,000 every time!", 
      "That's serious income potential. It's worth building up to that level."),
-    
     ("💬 Have questions? DM @jetlee261 – they'll guide you step by step.", 
      "Yes, they even provide strategy tips to maximise your rewards."),
 ]
 
-# ---------- NEW FINAL PROMOTIONAL MESSAGES (exactly as provided) ----------
+# ---------- FINAL PROMOTIONAL MESSAGES ----------
 FINAL_CALL_A = (
     "USDT EXCHANGE REWARDS ARE LIVE! 🔄\n\n"
     "🏆🏆🏆 USDT Rate: 1️⃣0️⃣8️⃣🔤5️⃣\n\n"
@@ -246,11 +216,11 @@ async def test_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await app_b.bot.send_message(chat_id, FINAL_CALL_B)
     await context.bot.send_message(chat_id, "✅ Test complete! Daily session will run at scheduled time.")
 
-# ---------- MAIN (Always online, auto‑restart polling) ----------
+# ---------- MAIN (Fixed: Stop updater before restart) ----------
 async def main():
     global APP_B
     
-    # Build applications
+    # Build applications (once)
     app_a = Application.builder().token(TOKEN_A).build()
     app_b = Application.builder().token(TOKEN_B).build()
     APP_B = app_b
@@ -263,44 +233,69 @@ async def main():
     
     app_a.add_handler(CommandHandler("test", test_handler))
     
-    # Initialize and start apps
+    # Initialize and start apps (once)
     await app_a.initialize()
     await app_b.initialize()
     await app_a.start()
     await app_b.start()
     
-    # Schedule daily session
+    # Schedule daily session at 10:20 AM UTC (as requested)
     scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(
         start_daily_session,
         "cron",
         hour=10,
-        minute=0,
+        minute=20,
         args=[app_a, app_b]
     )
     scheduler.start()
     
-    logger.info("Both bots started. Press Ctrl+C to stop.")
+    logger.info("Both bots started. Daily session scheduled at 10:20 UTC. Press Ctrl+C to stop.")
     
-    # Keep bots running; restart polling if it stops
+    # Keep the bots running with proper restart logic
     while True:
+        # Create polling tasks
+        poll_a = asyncio.create_task(app_a.updater.start_polling(allowed_updates=Update.ALL_TYPES))
+        poll_b = asyncio.create_task(app_b.updater.start_polling(allowed_updates=Update.ALL_TYPES))
+        
         try:
-            await asyncio.gather(
-                app_a.updater.start_polling(allowed_updates=Update.ALL_TYPES),
-                app_b.updater.start_polling(allowed_updates=Update.ALL_TYPES)
-            )
+            # Wait for either task to finish (should never happen normally)
+            await asyncio.gather(poll_a, poll_b)
+            # If we get here, polling stopped unexpectedly
             logger.warning("Polling stopped unexpectedly. Restarting in 5 seconds...")
             await asyncio.sleep(5)
         except asyncio.CancelledError:
             logger.info("Cancellation received, shutting down...")
+            # Cancel polling tasks
+            poll_a.cancel()
+            poll_b.cancel()
             break
         except Exception as e:
             logger.error(f"Polling error: {e}", exc_info=True)
-            logger.info("Restarting polling in 10 seconds...")
+            # Cancel any remaining tasks
+            if not poll_a.done():
+                poll_a.cancel()
+            if not poll_b.done():
+                poll_b.cancel()
+            # IMPORTANT: Stop the updaters before restarting
+            try:
+                await app_a.updater.stop()
+            except Exception as stop_err:
+                logger.warning(f"Error stopping updater A: {stop_err}")
+            try:
+                await app_b.updater.stop()
+            except Exception as stop_err:
+                logger.warning(f"Error stopping updater B: {stop_err}")
+            logger.info("Waiting 10 seconds before restarting polling...")
             await asyncio.sleep(10)
+            # Continue the loop to restart (apps are still alive)
             continue
+        
+        # If we reach here, gather finished without exception (unlikely)
+        # Restart the loop
+        continue
     
-    # Clean shutdown
+    # --- Clean shutdown (only reached if we break out of the loop) ---
     logger.info("Stopping polling...")
     await app_a.updater.stop()
     await app_b.updater.stop()
