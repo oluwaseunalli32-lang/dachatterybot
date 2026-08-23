@@ -2,7 +2,6 @@ import asyncio
 import logging
 import os
 import random
-import threading
 from pathlib import Path
 
 from telegram import Update
@@ -37,7 +36,13 @@ if not TOKEN_A or not TOKEN_B:
         "BOT_TOKEN_A and BOT_TOKEN_B must both be set."
     )
 
+
 GROUP_IDS_FILE = Path("group_ids.txt")
+
+
+# =========================================================
+# GLOBAL APPLICATION REFERENCES
+# =========================================================
 
 APP_A = None
 APP_B = None
@@ -47,173 +52,88 @@ APP_B = None
 # SESSION SETTINGS
 # =========================================================
 
-SESSION_INTERVAL = 3 * 60 * 60  # 3 hours
+# 3 hours
+SESSION_INTERVAL = 3 * 60 * 60
 
-# Each group gets its own running task.
-GROUP_SESSION_TASKS = {}
+# Normal session message delay
+NORMAL_WAIT_MIN = 10
+NORMAL_WAIT_MAX = 30
 
-# Prevents multiple sessions from running in the same group.
-GROUP_LOCKS = {}
+# Test session message delay
+TEST_WAIT_MIN = 3
+TEST_WAIT_MAX = 5
 
 
 # =========================================================
-# REAL PROMOTIONAL CONVERSATION
+# ACTIVE GROUP TASKS
+# =========================================================
+
+# Example:
+#
+# {
+#     -100123456789: asyncio.Task(...)
+# }
+#
+GROUP_SESSION_TASKS = {}
+
+
+# =========================================================
+# NEUTRAL TEST CONVERSATION
+# =========================================================
+#
+# These are deliberately neutral test messages.
+# They do not simulate customers, testimonials,
+# endorsements, financial claims, or promotional activity.
 # =========================================================
 
 CONVERSATION_PAIRS = [
     (
-        "💰 USDT exchange rewards are live! Have you seen the new rates?",
-        "Yes! USDT is at 108.5 – that's a great rate to exchange right now.",
+        "🤖 Bot A: Hello! This is a system test message.",
+        "🤖 Bot B: Bot B received the message successfully.",
     ),
     (
-        "🏆 Did you know you can earn up to ₹15,000 bonus on exchanges?",
-        "Absolutely – the more you exchange, the higher the reward. It's tiered!",
+        "📋 Bot A: Checking the message sequence now.",
+        "📋 Bot B: Sequence check completed successfully.",
     ),
     (
-        "📊 If you exchange 100 USDT+, you get ₹80 reward instantly.",
-        "That's a nice bonus on top of the competitive rate. Every bit helps.",
+        "🔄 Bot A: Testing communication between the two bots.",
+        "🔄 Bot B: Communication test received.",
     ),
     (
-        "🔥 400 USDT+ gives you ₹400 – that's a 1% reward!",
-        "And it scales up – 1000 USDT gives ₹1,200, which is even better.",
+        "⏱️ Bot A: Testing the scheduled delay.",
+        "⏱️ Bot B: Scheduled delay test completed.",
     ),
     (
-        "💎 Exchange 2000 USDT and get ₹3,000 reward – that's huge!",
-        "Yes, and at 4000 USDT it's ₹8,000 – the rewards keep growing.",
+        "📡 Bot A: Testing message delivery to this group.",
+        "📡 Bot B: Message delivery is working.",
     ),
     (
-        "🏅 The top tier: 6000 USDT+ unlocks ₹15,000 bonus! That's massive.",
-        "That's a 2.5% reward – unbeatable in today's market.",
+        "🧪 Bot A: Running another neutral system check.",
+        "🧪 Bot B: Neutral system check received.",
     ),
     (
-        "🔔 The official link is live: https://wallet.paisa-base.com/register?inviteCode=phar6p",
-        "I've registered already – the process is smooth and the rewards are credited quickly.",
+        "✅ Bot A: The first part of this test is complete.",
+        "✅ Bot B: The second part of this test is complete.",
     ),
     (
-        "🤝 Invite your friends and build a team – you earn even more.",
-        "Team building is encouraged. The more active members, the better the ecosystem.",
-    ),
-    (
-        "📩 For details, just DM @jetlee261 – they respond fast.",
-        "Yes, support is top‑notch. They'll guide you through the exchange process.",
-    ),
-    (
-        "🚀 USDT is stable and widely used – exchanging now is a smart move.",
-        "With the bonus rewards, it's a win‑win. You get extra value for your exchange.",
-    ),
-    (
-        "⏰ The offer is time‑limited – don't miss out on these rewards.",
-        "Exactly – early adopters get the best rates and bonuses. Act now.",
-    ),
-    (
-        "📈 The exchange rate is competitive – 108.5 for USDT is above market.",
-        "Yes, you get more INR for your USDT compared to other platforms.",
-    ),
-    (
-        "🎯 Set a target: exchange 6000 USDT and get ₹15,000 – that's a goal!",
-        "It's achievable if you plan your exchanges. Many users are already there.",
-    ),
-    (
-        "💬 The community is growing – join the official channel for updates.",
-        "DM @jetlee261 for the channel link – they share exclusive tips.",
-    ),
-    (
-        "🔄 Exchange more, earn more – that's the motto. It's simple.",
-        "Yes, the tiered structure encourages higher volumes, which benefits everyone.",
-    ),
-    (
-        "🛡️ The platform is secure – your transactions are safe.",
-        "I've used it – no issues. It's reliable and transparent.",
-    ),
-    (
-        "📱 You can exchange from your mobile – it's user‑friendly.",
-        "The dashboard is intuitive. You can track your rewards in real‑time.",
-    ),
-    (
-        "💡 Did you know you can combine exchange rewards with referral bonuses?",
-        "Yes, referrals add extra income – share your invite code and earn.",
-    ),
-    (
-        "🌟 Real users have already earned thousands – check the testimonials.",
-        "I've seen screenshots – the rewards are real and paid out promptly.",
-    ),
-    (
-        "📆 Daily exchange limits? No – you can exchange as much as you want.",
-        "That flexibility is great for high‑volume traders.",
-    ),
-    (
-        "📊 The reward tiers are updated regularly – stay tuned for more.",
-        "Yes, they might add higher tiers or bonuses – keep an eye out.",
-    ),
-    (
-        "🔐 Your funds are safe – we use bank‑grade security.",
-        "That gives me confidence to exchange larger amounts.",
-    ),
-    (
-        "📲 Instant notifications – you'll know when rewards are credited.",
-        "Yes, the system sends alerts. It's transparent and fast.",
-    ),
-    (
-        "🤖 The registration is quick – just use the official link.",
-        "I registered in 2 minutes. The process is smooth.",
-    ),
-    (
-        "📞 Support is available 24/7 via @jetlee261 – they're helpful.",
-        "They answered all my questions promptly. Great service.",
-    ),
-    (
-        "🏁 Start with a small exchange to test the system – then go big.",
-        "That's a good strategy. Once you see the rewards, you'll want to exchange more.",
-    ),
-    (
-        "💰 The reward bonus is credited instantly after exchange.",
-        "Yes, no waiting. It's automatic – you see the balance update.",
-    ),
-    (
-        "🌍 This is a global opportunity – users from many countries are joining.",
-        "The platform is international, but INR rewards are great for Indian users.",
-    ),
-    (
-        "📌 Bookmark the official link: https://wallet.paisa-base.com/register?inviteCode=phar6p",
-        "I've saved it – easy to access anytime.",
-    ),
-    (
-        "🏆 The top earners are exchanging 6000+ USDT daily – they get ₹15,000 every time!",
-        "That's serious income potential. It's worth building up to that level.",
-    ),
-    (
-        "💬 Have questions? DM @jetlee261 – they'll guide you step by step.",
-        "Yes, they even provide strategy tips to maximise your rewards.",
+        "🔔 Bot A: This is a normal automated test notification.",
+        "🔔 Bot B: Notification received successfully.",
     ),
 ]
 
 
 # =========================================================
-# FINAL / CTA MESSAGES
+# FINAL SESSION MESSAGES
 # =========================================================
 
 FINAL_CALL_A = (
-    "USDT EXCHANGE REWARDS ARE LIVE! 🔄\n\n"
-    "🏆🏆🏆 USDT Rate: 1️⃣0️⃣8️⃣🔤5️⃣\n\n"
-    "📌Enjoy a competitive rate while unlocking extra exchange rewards!\n\n"
-    "OFFICIAL LINK : \n\n"
-    "https://wallet.paisa-base.com/register?inviteCode=phar6p\n\n"
-    "🔔🔔🔔Exchange More, Earn More!\n\n"
-    "☄️Your rewards are waiting:\n"
-    "⭐️ 100 USDT+ → ₹80 Reward\n"
-    "⭐️ 400 USDT+ → ₹400 Reward\n"
-    "⭐️ 1000 USDT+ → ₹1,200 Reward\n"
-    "⭐️ 2000 USDT+ → ₹3,000 Reward\n"
-    "⭐️ 4000 USDT+ → ₹8,000 Reward\n"
-    "🏆 6000 USDT+ → ₹15,000 Reward\n"
-    "✔️Unlock up to ₹15,000 bonus reward with 6000+ USDT exchange!\n"
-    "🤝 Invite your friends, build your team, and start working today!\n"
-    "📩 DM for details & join now!@jetlee261  ✅"
+    "🏁 Bot A: Test session is reaching its final step.\n\n"
+    "The session will finish after this message."
 )
 
 FINAL_CALL_B = (
-    "💬 That's an amazing offer! Contact @jetlee261 right now to get started.\n"
-    "Don't miss out on these rewards – exchange USDT and earn big! 🚀"
+    "✅ Bot B: Test session completed successfully.\n\n"
+    "The 3-hour countdown will now begin."
 )
 
 
@@ -222,7 +142,7 @@ FINAL_CALL_B = (
 # =========================================================
 
 def load_group_ids():
-    """Load saved group IDs."""
+    """Load saved group IDs from disk."""
 
     if not GROUP_IDS_FILE.exists():
         return []
@@ -292,31 +212,24 @@ def save_group_id(chat_id):
 
 
 # =========================================================
-# GROUP LOCK
+# BOT A SENDER
 # =========================================================
 
-def get_group_lock(chat_id):
-    """Return the asyncio lock for a specific group."""
-
-    if chat_id not in GROUP_LOCKS:
-        GROUP_LOCKS[chat_id] = asyncio.Lock()
-
-    return GROUP_LOCKS[chat_id]
-
-
-# =========================================================
-# SEND TO BOTH BOTS
-# =========================================================
-
-async def send_bot_a(chat_id, text):
-    """Send a message through Bot A."""
+async def send_bot_a(
+    chat_id,
+    text,
+):
+    """Send a message using Bot A."""
 
     if APP_A is None:
-        logger.error("Bot A is not initialized.")
-        return None
+        logger.error(
+            "Bot A is not initialized."
+        )
+        return False
 
     try:
-        message = await APP_A.bot.send_message(
+
+        await APP_A.bot.send_message(
             chat_id=chat_id,
             text=text,
         )
@@ -326,27 +239,38 @@ async def send_bot_a(chat_id, text):
             chat_id,
         )
 
-        return message
+        return True
 
     except Exception as error:
+
         logger.error(
             "Bot A failed to send to %s: %s",
             chat_id,
             error,
         )
 
-        return None
+        return False
 
 
-async def send_bot_b(chat_id, text):
-    """Send a message through Bot B."""
+# =========================================================
+# BOT B SENDER
+# =========================================================
+
+async def send_bot_b(
+    chat_id,
+    text,
+):
+    """Send a message using Bot B."""
 
     if APP_B is None:
-        logger.error("Bot B is not initialized.")
-        return None
+        logger.error(
+            "Bot B is not initialized."
+        )
+        return False
 
     try:
-        message = await APP_B.bot.send_message(
+
+        await APP_B.bot.send_message(
             chat_id=chat_id,
             text=text,
         )
@@ -356,99 +280,155 @@ async def send_bot_b(chat_id, text):
             chat_id,
         )
 
-        return message
+        return True
 
     except Exception as error:
+
         logger.error(
             "Bot B failed to send to %s: %s",
             chat_id,
             error,
         )
 
-        return None
+        return False
 
 
 # =========================================================
 # ONE SESSION
 # =========================================================
 
-async def run_session(chat_id, test_mode=False):
+async def run_session(
+    chat_id,
+    test_mode=False,
+):
     """
-    Run exactly one conversation session.
+    Run exactly one session.
 
-    This function does NOT schedule the next session.
-    The caller handles the 3-hour delay.
+    IMPORTANT:
+    This function does NOT start the 3-hour timer.
+
+    The caller starts the timer only after this
+    function has completely finished.
     """
 
     logger.info(
-        "Starting session for group %s",
-        chat_id,
+        "========================================"
     )
 
+    logger.info(
+        "SESSION STARTED | GROUP %s | TEST=%s",
+        chat_id,
+        test_mode,
+    )
+
+    logger.info(
+        "========================================"
+    )
+
+    # -----------------------------------------------------
+    # SELECT MESSAGES
+    # -----------------------------------------------------
+
     if test_mode:
-        # Use fewer pairs for test
-        pairs = random.sample(
-            CONVERSATION_PAIRS,
-            min(3, len(CONVERSATION_PAIRS)),
+
+        number_of_pairs = min(
+            3,
+            len(CONVERSATION_PAIRS),
         )
-        wait_min, wait_max = 5, 10
+
+        wait_min = TEST_WAIT_MIN
+        wait_max = TEST_WAIT_MAX
+
     else:
-        # Use up to 15 pairs for a balanced session
-        pairs = random.sample(
-            CONVERSATION_PAIRS,
-            min(15, len(CONVERSATION_PAIRS)),
+
+        number_of_pairs = min(
+            6,
+            len(CONVERSATION_PAIRS),
         )
-        wait_min, wait_max = 60, 180  # 1‑3 minutes
 
-    for index, (message_a, message_b) in enumerate(pairs):
+        wait_min = NORMAL_WAIT_MIN
+        wait_max = NORMAL_WAIT_MAX
 
-        # ---------------------------------------------
+    pairs = random.sample(
+        CONVERSATION_PAIRS,
+        number_of_pairs,
+    )
+
+    # -----------------------------------------------------
+    # RUN CONVERSATION
+    # -----------------------------------------------------
+
+    for index, (
+        message_a,
+        message_b,
+    ) in enumerate(pairs):
+
+        # ================================================
         # BOT A
-        # ---------------------------------------------
+        # ================================================
 
         await send_bot_a(
             chat_id,
             message_a,
         )
 
-        # ---------------------------------------------
+        # ================================================
         # WAIT
-        # ---------------------------------------------
+        # ================================================
 
-        wait_time = random.randint(wait_min, wait_max)
+        wait_time = random.randint(
+            wait_min,
+            wait_max,
+        )
+
         logger.info(
-            "Waiting %s seconds before Bot B replies.",
+            "Group %s: waiting %s seconds before Bot B.",
+            chat_id,
             wait_time,
         )
-        await asyncio.sleep(wait_time)
 
-        # ---------------------------------------------
+        await asyncio.sleep(
+            wait_time
+        )
+
+        # ================================================
         # BOT B
-        # ---------------------------------------------
+        # ================================================
 
         await send_bot_b(
             chat_id,
             message_b,
         )
 
-        # ---------------------------------------------
+        # ================================================
         # WAIT BEFORE NEXT PAIR
-        # ---------------------------------------------
+        # ================================================
 
         if index < len(pairs) - 1:
 
-            wait_time = random.randint(wait_min, wait_max)
+            wait_time = random.randint(
+                wait_min,
+                wait_max,
+            )
+
             logger.info(
-                "Waiting %s seconds before next pair.",
+                "Group %s: waiting %s seconds before next pair.",
+                chat_id,
                 wait_time,
             )
-            await asyncio.sleep(wait_time)
+
+            await asyncio.sleep(
+                wait_time
+            )
 
     # =====================================================
-    # FINAL SESSION MESSAGE
+    # FINAL SESSION MESSAGES
     # =====================================================
 
-    await asyncio.sleep(5)
+    logger.info(
+        "Group %s: sending final session messages.",
+        chat_id,
+    )
 
     await send_bot_a(
         chat_id,
@@ -462,27 +442,59 @@ async def run_session(chat_id, test_mode=False):
         FINAL_CALL_B,
     )
 
+    # =====================================================
+    # SESSION COMPLETELY FINISHED
+    # =====================================================
+
     logger.info(
-        "Session completed for group %s",
+        "========================================"
+    )
+
+    logger.info(
+        "SESSION COMPLETED | GROUP %s",
         chat_id,
+    )
+
+    logger.info(
+        "3-hour countdown can now begin."
+    )
+
+    logger.info(
+        "========================================"
     )
 
 
 # =========================================================
-# CONTINUOUS 3-HOUR SESSION
+# RECURRING GROUP SESSION
 # =========================================================
 
-async def group_session_loop(chat_id):
+async def group_session_loop(
+    chat_id,
+):
     """
-    Run: session → final CTA → wait 3 hours → session → repeat.
+    Correct timing:
+
+        /start
+           ↓
+        Session 1
+           ↓
+        Final CTA/message
+           ↓
+        3-hour wait
+           ↓
+        Session 2
+           ↓
+        Final CTA/message
+           ↓
+        3-hour wait
+           ↓
+        repeat
     """
 
     logger.info(
-        "3-hour session loop started for group %s",
+        "Starting recurring cycle for group %s",
         chat_id,
     )
-
-    lock = get_group_lock(chat_id)
 
     try:
 
@@ -490,41 +502,57 @@ async def group_session_loop(chat_id):
         # FIRST SESSION
         # =================================================
 
-        async with lock:
+        await run_session(
+            chat_id,
+            test_mode=False,
+        )
+
+        # =================================================
+        # REPEAT
+        # =================================================
+
+        while True:
+
+            # -------------------------------------------------
+            # IMPORTANT:
+            # The 3-hour countdown starts HERE.
+            #
+            # run_session() has already completely finished,
+            # including FINAL_CALL_A and FINAL_CALL_B.
+            # -------------------------------------------------
+
+            logger.info(
+                "Group %s: session finished.",
+                chat_id,
+            )
+
+            logger.info(
+                "Group %s: starting 3-hour countdown.",
+                chat_id,
+            )
+
+            await asyncio.sleep(
+                SESSION_INTERVAL
+            )
+
+            # -------------------------------------------------
+            # NEXT SESSION
+            # -------------------------------------------------
+
+            logger.info(
+                "Group %s: 3-hour countdown completed.",
+                chat_id,
+            )
 
             await run_session(
                 chat_id,
                 test_mode=False,
             )
 
-        # =================================================
-        # REPEAT FOREVER
-        # =================================================
-
-        while True:
-
-            logger.info(
-                "Session finished for %s. Waiting 3 hours.",
-                chat_id,
-            )
-
-            await asyncio.sleep(SESSION_INTERVAL)
-
-            # ---------------------------------------------
-            # NEXT SESSION
-            # ---------------------------------------------
-
-            async with lock:
-
-                await run_session(
-                    chat_id,
-                    test_mode=False,
-                )
-
     except asyncio.CancelledError:
 
         logger.info(
-            "Session loop cancelled for group %s",
+            "Recurring cycle cancelled for group %s",
             chat_id,
         )
 
@@ -533,34 +561,48 @@ async def group_session_loop(chat_id):
     except Exception as error:
 
         logger.exception(
-            "Session loop failed for %s: %s",
+            "Recurring cycle failed for group %s: %s",
             chat_id,
             error,
         )
 
     finally:
 
-        GROUP_SESSION_TASKS.pop(
-            chat_id,
-            None,
-        )
+        current_task = asyncio.current_task()
+
+        if (
+            GROUP_SESSION_TASKS.get(chat_id)
+            is current_task
+        ):
+            GROUP_SESSION_TASKS.pop(
+                chat_id,
+                None,
+            )
 
         logger.info(
-            "Session loop stopped for group %s",
+            "Recurring cycle stopped for group %s",
             chat_id,
         )
 
 
 # =========================================================
-# START SESSION FOR GROUP
+# START GROUP SESSION
 # =========================================================
 
-async def start_group_session(chat_id):
+def start_group_session(
+    chat_id,
+):
     """
-    Start the 3-hour session loop if it isn't already running.
+    Start a recurring group session.
+
+    Returns:
+        True  = started
+        False = already running
     """
 
-    existing_task = GROUP_SESSION_TASKS.get(chat_id)
+    existing_task = GROUP_SESSION_TASKS.get(
+        chat_id
+    )
 
     if existing_task:
 
@@ -569,24 +611,37 @@ async def start_group_session(chat_id):
             return False
 
     task = asyncio.create_task(
-        group_session_loop(chat_id)
+        group_session_loop(
+            chat_id
+        )
     )
 
     GROUP_SESSION_TASKS[chat_id] = task
+
+    logger.info(
+        "Created session task for group %s",
+        chat_id,
+    )
 
     return True
 
 
 # =========================================================
-# STOP SESSION FOR GROUP
+# STOP GROUP SESSION
 # =========================================================
 
-async def stop_group_session(chat_id):
-    """Stop the running session loop for a group."""
+async def stop_group_session(
+    chat_id,
+):
+    """
+    Stop a group's recurring session.
+    """
 
-    task = GROUP_SESSION_TASKS.get(chat_id)
+    task = GROUP_SESSION_TASKS.get(
+        chat_id
+    )
 
-    if not task:
+    if task is None:
         return False
 
     if task.done():
@@ -598,9 +653,15 @@ async def stop_group_session(chat_id):
 
         return False
 
+    logger.info(
+        "Cancelling session for group %s",
+        chat_id,
+    )
+
     task.cancel()
 
     try:
+
         await task
 
     except asyncio.CancelledError:
@@ -615,18 +676,23 @@ async def stop_group_session(chat_id):
 
 
 # =========================================================
-# COMMAND HANDLERS
+# /START
 # =========================================================
 
 async def start_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
 ):
+    """Start the recurring cycle for this group."""
 
     chat = update.effective_chat
 
-    if not chat:
+    if chat is None:
         return
+
+    # -----------------------------------------------------
+    # GROUP ONLY
+    # -----------------------------------------------------
 
     if chat.type not in (
         "group",
@@ -643,9 +709,19 @@ async def start_command(
 
     chat_id = chat.id
 
-    save_group_id(chat_id)
+    # -----------------------------------------------------
+    # SAVE GROUP
+    # -----------------------------------------------------
 
-    started = await start_group_session(
+    save_group_id(
+        chat_id
+    )
+
+    # -----------------------------------------------------
+    # START CYCLE
+    # -----------------------------------------------------
+
+    started = start_group_session(
         chat_id
     )
 
@@ -654,10 +730,10 @@ async def start_command(
         if update.message:
 
             await update.message.reply_text(
-                "✅ Session started.\n\n"
-                "The first session is running now.\n"
-                "After the session finishes, the 3-hour "
-                "countdown will begin."
+                "✅ Session cycle started.\n\n"
+                "The first test session will begin now.\n"
+                "The 3-hour countdown starts only after "
+                "the session completely finishes."
             )
 
     else:
@@ -665,19 +741,24 @@ async def start_command(
         if update.message:
 
             await update.message.reply_text(
-                "ℹ️ A session is already running "
-                "for this group."
+                "ℹ️ A session cycle is already active "
+                "in this group."
             )
 
+
+# =========================================================
+# /STOP
+# =========================================================
 
 async def stop_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
 ):
+    """Stop the recurring cycle."""
 
     chat = update.effective_chat
 
-    if not chat:
+    if chat is None:
         return
 
     chat_id = chat.id
@@ -697,18 +778,27 @@ async def stop_command(
         else:
 
             await update.message.reply_text(
-                "ℹ️ No active session was running."
+                "ℹ️ No active session cycle was found."
             )
 
+
+# =========================================================
+# /TEST
+# =========================================================
 
 async def test_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
 ):
+    """
+    Run one neutral test session.
+
+    This does NOT activate the 3-hour recurring cycle.
+    """
 
     chat = update.effective_chat
 
-    if not chat:
+    if chat is None:
         return
 
     if chat.type not in (
@@ -726,25 +816,36 @@ async def test_command(
 
     chat_id = chat.id
 
+    # -----------------------------------------------------
+    # CHECK NORMAL CYCLE
+    # -----------------------------------------------------
+
     existing_task = GROUP_SESSION_TASKS.get(
         chat_id
     )
 
-    if existing_task and not existing_task.done():
+    if (
+        existing_task
+        and not existing_task.done()
+    ):
 
         if update.message:
 
             await update.message.reply_text(
-                "⚠️ A normal session is already running "
-                "for this group."
+                "⚠️ A recurring session is already "
+                "active in this group."
             )
 
         return
 
+    # -----------------------------------------------------
+    # START TEST
+    # -----------------------------------------------------
+
     if update.message:
 
         await update.message.reply_text(
-            "🧪 Test session starting..."
+            "🧪 One-time test session starting..."
         )
 
     try:
@@ -757,32 +858,41 @@ async def test_command(
         if update.message:
 
             await update.message.reply_text(
-                "✅ Test session completed."
+                "✅ One-time test completed.\n\n"
+                "The 3-hour recurring cycle was not started."
             )
+
+    except asyncio.CancelledError:
+
+        raise
 
     except Exception as error:
 
         logger.exception(
-            "Test session failed: %s",
+            "One-time test failed: %s",
             error,
         )
 
         if update.message:
 
             await update.message.reply_text(
-                "❌ Test session failed. "
-                "Check the bot logs."
+                "❌ Test failed. Check the server logs."
             )
 
+
+# =========================================================
+# /STATUS
+# =========================================================
 
 async def status_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
 ):
+    """Show current session status."""
 
     chat = update.effective_chat
 
-    if not chat:
+    if chat is None:
         return
 
     chat_id = chat.id
@@ -795,17 +905,17 @@ async def status_command(
 
         status = (
             "🟢 ACTIVE\n\n"
-            "The session cycle is running.\n"
-            "After each completed session, "
-            "the bot waits 3 hours before starting "
-            "the next one."
+            "The recurring session cycle is active.\n\n"
+            "Sequence:\n"
+            "Session → final message → 3-hour wait → "
+            "next session."
         )
 
     else:
 
         status = (
             "🔴 INACTIVE\n\n"
-            "No session cycle is currently running.\n"
+            "No recurring session cycle is active.\n\n"
             "Use /start to begin."
         )
 
@@ -816,14 +926,23 @@ async def status_command(
         )
 
 
+# =========================================================
+# /ADDGROUP
+# =========================================================
+
 async def add_group_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
 ):
+    """
+    Save a group ID without starting a session.
+
+    /start is still required to actually begin the cycle.
+    """
 
     chat = update.effective_chat
 
-    if not chat:
+    if chat is None:
         return
 
     if chat.type not in (
@@ -846,7 +965,31 @@ async def add_group_command(
     if update.message:
 
         await update.message.reply_text(
-            "✅ This group has been registered."
+            "✅ Group registered.\n\n"
+            "Use /start when you want to begin the session cycle."
+        )
+
+
+# =========================================================
+# /HELP
+# =========================================================
+
+async def help_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
+    """Display available commands."""
+
+    if update.message:
+
+        await update.message.reply_text(
+            "🤖 Two-Bot Test System\n\n"
+            "/start — Start recurring sessions\n"
+            "/stop — Stop recurring sessions\n"
+            "/test — Run one test session\n"
+            "/status — Show current status\n"
+            "/addgroup — Register this group\n"
+            "/help — Show this message"
         )
 
 
@@ -858,6 +1001,7 @@ async def error_handler(
     update: object,
     context: ContextTypes.DEFAULT_TYPE,
 ):
+    """Log Telegram/application errors."""
 
     logger.error(
         "Telegram error: %s",
@@ -867,11 +1011,13 @@ async def error_handler(
 
 
 # =========================================================
-# CONFIGURE APPLICATION
+# CONFIGURE BOT
 # =========================================================
 
-def configure_application(application):
-    """Add the same commands to a bot."""
+def configure_application(
+    application,
+):
+    """Register all command handlers."""
 
     application.add_handler(
         CommandHandler(
@@ -908,54 +1054,15 @@ def configure_application(application):
         )
     )
 
+    application.add_handler(
+        CommandHandler(
+            "help",
+            help_command,
+        )
+    )
+
     application.add_error_handler(
         error_handler
-    )
-
-
-# =========================================================
-# THREADED BOT RUNNERS (with signal handlers disabled)
-# =========================================================
-
-def run_bot_a():
-    """Run Bot A in its own thread with a dedicated event loop."""
-    global APP_A
-
-    # Create and set an event loop for this thread
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    # Disable signal handlers – they only work in the main thread
-    loop.set_signal_handlers(False)
-
-    APP_A = Application.builder().token(TOKEN_A).build()
-    configure_application(APP_A)
-
-    # This will use the event loop we just set
-    APP_A.run_polling(
-        allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=True,
-    )
-
-
-def run_bot_b():
-    """Run Bot B in its own thread with a dedicated event loop."""
-    global APP_B
-
-    # Create and set an event loop for this thread
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    # Disable signal handlers – they only work in the main thread
-    loop.set_signal_handlers(False)
-
-    APP_B = Application.builder().token(TOKEN_B).build()
-    configure_application(APP_B)
-
-    # This will use the event loop we just set
-    APP_B.run_polling(
-        allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=True,
     )
 
 
@@ -963,29 +1070,262 @@ def run_bot_b():
 # MAIN
 # =========================================================
 
-def main():
-    logger.info("========================================")
-    logger.info("STARTING TWO-BOT SYSTEM (THREADED + SIGNAL DISABLED)")
-    logger.info("========================================")
+async def main():
+    """
+    Run both Telegram bots on the SAME asyncio event loop.
 
-    # Start Bot A in its own thread
-    thread_a = threading.Thread(target=run_bot_a, daemon=True)
-    thread_a.start()
-    logger.info("Bot A thread started.")
+    This avoids:
+      - threading
+      - separate asyncio loops
+      - cross-loop locks
+      - set_signal_handlers()
+      - run_polling() conflicts
+    """
 
-    # Start Bot B in its own thread
-    thread_b = threading.Thread(target=run_bot_b, daemon=True)
-    thread_b.start()
-    logger.info("Bot B thread started.")
+    global APP_A
+    global APP_B
 
-    # Keep the main thread alive
+    logger.info(
+        "========================================"
+    )
+
+    logger.info(
+        "STARTING TWO-BOT SYSTEM"
+    )
+
+    logger.info(
+        "========================================"
+    )
+
+    # =====================================================
+    # CREATE APPLICATIONS
+    # =====================================================
+
+    APP_A = (
+        Application.builder()
+        .token(TOKEN_A)
+        .build()
+    )
+
+    APP_B = (
+        Application.builder()
+        .token(TOKEN_B)
+        .build()
+    )
+
+    configure_application(
+        APP_A
+    )
+
+    configure_application(
+        APP_B
+    )
+
+    # =====================================================
+    # INITIALIZE
+    # =====================================================
+
+    logger.info(
+        "Initializing Bot A..."
+    )
+
+    await APP_A.initialize()
+
+    logger.info(
+        "Initializing Bot B..."
+    )
+
+    await APP_B.initialize()
+
+    # =====================================================
+    # REMOVE WEBHOOKS
+    # =====================================================
+
+    logger.info(
+        "Removing Bot A webhook..."
+    )
+
+    await APP_A.bot.delete_webhook(
+        drop_pending_updates=True
+    )
+
+    logger.info(
+        "Removing Bot B webhook..."
+    )
+
+    await APP_B.bot.delete_webhook(
+        drop_pending_updates=True
+    )
+
+    # =====================================================
+    # START APPLICATIONS
+    # =====================================================
+
+    logger.info(
+        "Starting Bot A..."
+    )
+
+    await APP_A.start()
+
+    logger.info(
+        "Starting Bot B..."
+    )
+
+    await APP_B.start()
+
+    # =====================================================
+    # START POLLING
+    # =====================================================
+
+    logger.info(
+        "Starting Bot A polling..."
+    )
+
+    await APP_A.updater.start_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True,
+    )
+
+    logger.info(
+        "Starting Bot B polling..."
+    )
+
+    await APP_B.updater.start_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True,
+    )
+
+    logger.info(
+        "========================================"
+    )
+
+    logger.info(
+        "BOTH BOTS ARE ONLINE"
+    )
+
+    logger.info(
+        "No session will start automatically."
+    )
+
+    logger.info(
+        "Use /start inside a group."
+    )
+
+    logger.info(
+        "========================================"
+    )
+
+    # =====================================================
+    # KEEP APPLICATION ALIVE
+    # =====================================================
+
     try:
-        # Wait for both threads to finish (they won't)
-        thread_a.join()
-        thread_b.join()
-    except KeyboardInterrupt:
-        logger.info("Shutdown requested.")
-        # Daemon threads will exit automatically
+
+        await asyncio.Event().wait()
+
+    except asyncio.CancelledError:
+
+        logger.info(
+            "Main application cancelled."
+        )
+
+    finally:
+
+        logger.info(
+            "Beginning shutdown..."
+        )
+
+        # =================================================
+        # STOP GROUP TASKS
+        # =================================================
+
+        active_tasks = list(
+            GROUP_SESSION_TASKS.values()
+        )
+
+        logger.info(
+            "Stopping %s active group session(s).",
+            len(active_tasks),
+        )
+
+        for task in active_tasks:
+
+            if not task.done():
+
+                task.cancel()
+
+        if active_tasks:
+
+            await asyncio.gather(
+                *active_tasks,
+                return_exceptions=True,
+            )
+
+        GROUP_SESSION_TASKS.clear()
+
+        # =================================================
+        # STOP POLLING
+        # =================================================
+
+        if (
+            APP_A
+            and APP_A.updater
+            and APP_A.updater.running
+        ):
+
+            logger.info(
+                "Stopping Bot A polling..."
+            )
+
+            await APP_A.updater.stop()
+
+        if (
+            APP_B
+            and APP_B.updater
+            and APP_B.updater.running
+        ):
+
+            logger.info(
+                "Stopping Bot B polling..."
+            )
+
+            await APP_B.updater.stop()
+
+        # =================================================
+        # STOP APPLICATIONS
+        # =================================================
+
+        if APP_A:
+
+            await APP_A.stop()
+
+        if APP_B:
+
+            await APP_B.stop()
+
+        # =================================================
+        # SHUTDOWN
+        # =================================================
+
+        if APP_A:
+
+            await APP_A.shutdown()
+
+        if APP_B:
+
+            await APP_B.shutdown()
+
+        logger.info(
+            "========================================"
+        )
+
+        logger.info(
+            "TWO-BOT SYSTEM SHUTDOWN COMPLETE"
+        )
+
+        logger.info(
+            "========================================"
+        )
 
 
 # =========================================================
@@ -993,4 +1333,22 @@ def main():
 # =========================================================
 
 if __name__ == "__main__":
-    main()
+
+    try:
+
+        asyncio.run(
+            main()
+        )
+
+    except KeyboardInterrupt:
+
+        logger.info(
+            "Bot stopped manually."
+        )
+
+    except Exception as error:
+
+        logger.exception(
+            "Fatal error: %s",
+            error,
+        )
