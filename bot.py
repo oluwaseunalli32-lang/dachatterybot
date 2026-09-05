@@ -1168,7 +1168,7 @@ def configure_application(
 
 
 # =========================================================
-# MAIN
+# MAIN (with conflict recovery)
 # =========================================================
 
 async def main():
@@ -1220,33 +1220,40 @@ async def main():
     logger.info("Both applications started.")
 
     # =====================================================
-    # START POLLING CONCURRENTLY
+    # START POLLING WITH CONFLICT RECOVERY
     # =====================================================
+
+    async def poll_bot(updater, name):
+        """Poll a single bot with conflict recovery."""
+        while True:
+            try:
+                await updater.start_polling(
+                    allowed_updates=Update.ALL_TYPES,
+                    drop_pending_updates=True,
+                    timeout=60,
+                )
+                break  # Normal exit (shouldn't happen)
+            except Exception as e:
+                if "Conflict" in str(e):
+                    logger.warning(f"{name}: Conflict detected, restarting in 10s...")
+                    await asyncio.sleep(10)
+                    continue
+                else:
+                    logger.error(f"{name}: {e}")
+                    raise
 
     logger.info("Starting both bots polling concurrently...")
 
     try:
         await asyncio.gather(
-            APP_A.updater.start_polling(
-                allowed_updates=Update.ALL_TYPES,
-                drop_pending_updates=True,
-            ),
-            APP_B.updater.start_polling(
-                allowed_updates=Update.ALL_TYPES,
-                drop_pending_updates=True,
-            ),
+            poll_bot(APP_A.updater, "Bot A"),
+            poll_bot(APP_B.updater, "Bot B"),
         )
     except asyncio.CancelledError:
         logger.info("Polling cancelled.")
 
-    logger.info("========================================")
-    logger.info("BOTH BOTS ARE ONLINE")
-    logger.info("No session will start automatically.")
-    logger.info("Use /start inside a group.")
-    logger.info("========================================")
-
     # =====================================================
-    # KEEP APPLICATION ALIVE
+    # KEEP APPLICATION ALIVE (only if polling stops)
     # =====================================================
 
     try:
