@@ -36,7 +36,6 @@ if not TOKEN_A or not TOKEN_B:
         "BOT_TOKEN_A and BOT_TOKEN_B must both be set."
     )
 
-
 GROUP_IDS_FILE = Path("group_ids.txt")
 
 
@@ -72,164 +71,185 @@ GROUP_SESSION_TASKS = {}
 
 
 # =========================================================
-# PROMOTIONAL CONVERSATION PAIRS (REPLACED)
+# SESSION CONTENT POOL (5 different session types)
 # =========================================================
 
-CONVERSATION_PAIRS = [
-    (
-        "💰 USDT exchange rewards are live! Have you seen the new rates?",
-        "Yes! USDT is at 108.5 – that's a great rate to exchange right now.",
-    ),
-    (
-        "🏆 Did you know you can earn up to ₹15,000 bonus on exchanges?",
-        "Absolutely – the more you exchange, the higher the reward. It's tiered!",
-    ),
-    (
-        "📊 If you exchange 100 USDT+, you get ₹80 reward instantly.",
-        "That's a nice bonus on top of the competitive rate. Every bit helps.",
-    ),
-    (
-        "🔥 400 USDT+ gives you ₹400 – that's a 1% reward!",
-        "And it scales up – 1000 USDT gives ₹1,200, which is even better.",
-    ),
-    (
-        "💎 Exchange 2000 USDT and get ₹3,000 reward – that's huge!",
-        "Yes, and at 4000 USDT it's ₹8,000 – the rewards keep growing.",
-    ),
-    (
-        "🏅 The top tier: 6000 USDT+ unlocks ₹15,000 bonus! That's massive.",
-        "That's a 2.5% reward – unbeatable in today's market.",
-    ),
-    (
-        "🔔 The official link is live: https://wallet.paisa-base.com/register?inviteCode=phar6p",
-        "I've registered already – the process is smooth and the rewards are credited quickly.",
-    ),
-    (
-        "🤝 Invite your friends and build a team – you earn even more.",
-        "Team building is encouraged. The more active members, the better the ecosystem.",
-    ),
-    (
-        "📩 For details, just DM @jetlee261 – they respond fast.",
-        "Yes, support is top‑notch. They'll guide you through the exchange process.",
-    ),
-    (
-        "🚀 USDT is stable and widely used – exchanging now is a smart move.",
-        "With the bonus rewards, it's a win‑win. You get extra value for your exchange.",
-    ),
-    (
-        "⏰ The offer is time‑limited – don't miss out on these rewards.",
-        "Exactly – early adopters get the best rates and bonuses. Act now.",
-    ),
-    (
-        "📈 The exchange rate is competitive – 108.5 for USDT is above market.",
-        "Yes, you get more INR for your USDT compared to other platforms.",
-    ),
-    (
-        "🎯 Set a target: exchange 6000 USDT and get ₹15,000 – that's a goal!",
-        "It's achievable if you plan your exchanges. Many users are already there.",
-    ),
-    (
-        "💬 The community is growing – join the official channel for updates.",
-        "DM @jetlee261 for the channel link – they share exclusive tips.",
-    ),
-    (
-        "🔄 Exchange more, earn more – that's the motto. It's simple.",
-        "Yes, the tiered structure encourages higher volumes, which benefits everyone.",
-    ),
-    (
-        "🛡️ The platform is secure – your transactions are safe.",
-        "I've used it – no issues. It's reliable and transparent.",
-    ),
-    (
-        "📱 You can exchange from your mobile – it's user‑friendly.",
-        "The dashboard is intuitive. You can track your rewards in real‑time.",
-    ),
-    (
-        "💡 Did you know you can combine exchange rewards with referral bonuses?",
-        "Yes, referrals add extra income – share your invite code and earn.",
-    ),
-    (
-        "🌟 Real users have already earned thousands – check the testimonials.",
-        "I've seen screenshots – the rewards are real and paid out promptly.",
-    ),
-    (
-        "📆 Daily exchange limits? No – you can exchange as much as you want.",
-        "That flexibility is great for high‑volume traders.",
-    ),
-    (
-        "📊 The reward tiers are updated regularly – stay tuned for more.",
-        "Yes, they might add higher tiers or bonuses – keep an eye out.",
-    ),
-    (
-        "🔐 Your funds are safe – we use bank‑grade security.",
-        "That gives me confidence to exchange larger amounts.",
-    ),
-    (
-        "📲 Instant notifications – you'll know when rewards are credited.",
-        "Yes, the system sends alerts. It's transparent and fast.",
-    ),
-    (
-        "🤖 The registration is quick – just use the official link.",
-        "I registered in 2 minutes. The process is smooth.",
-    ),
-    (
-        "📞 Support is available 24/7 via @jetlee261 – they're helpful.",
-        "They answered all my questions promptly. Great service.",
-    ),
-    (
-        "🏁 Start with a small exchange to test the system – then go big.",
-        "That's a good strategy. Once you see the rewards, you'll want to exchange more.",
-    ),
-    (
-        "💰 The reward bonus is credited instantly after exchange.",
-        "Yes, no waiting. It's automatic – you see the balance update.",
-    ),
-    (
-        "🌍 This is a global opportunity – users from many countries are joining.",
-        "The platform is international, but INR rewards are great for Indian users.",
-    ),
-    (
-        "📌 Bookmark the official link: https://wallet.paisa-base.com/register?inviteCode=phar6p",
-        "I've saved it – easy to access anytime.",
-    ),
-    (
-        "🏆 The top earners are exchanging 6000+ USDT daily – they get ₹15,000 every time!",
-        "That's serious income potential. It's worth building up to that level.",
-    ),
-    (
-        "💬 Have questions? DM @jetlee261 – they'll guide you step by step.",
-        "Yes, they even provide strategy tips to maximise your rewards.",
-    ),
+SESSION_CONTENT = [
+    {
+        "name": "Spin & Win",
+        "pairs": [
+            (
+                "🔔🔥 SPIN & WIN BIG! Have you seen the Lucky Wheel rewards?",
+                "Yes! 100% win rate – everyone gets a reward. Complete tasks to earn spins!",
+            ),
+            (
+                "🎡 Complete tasks → Earn spin chances. Spin the Lucky Wheel → Get rewards instantly!",
+                "More tasks. More spins. More chances to win. 🏆",
+            ),
+            (
+                "💙 Join Paisabase and try your luck today! Everyone gets a reward!",
+                "The more you spin, the more you win. Start completing tasks now!",
+            ),
+        ],
+        "final_a": (
+            "🔔 🔥🔥 SPIN & WIN BIG WITH 🔤🔤🔤🔤🔤🔤🔤🔤🔤❗️🔔 🔥🔥\n\n"
+            "🗺Want more rewards? Start completing tasks now! 🚀\n\n"
+            "1️⃣ Complete tasks → Earn spin chances‼️\n"
+            "2️⃣ Spin the Lucky Wheel → Get rewards instantly🆕\n\n"
+            "🔝 100% Win Rate! Everyone gets a reward!\n\n"
+            "🛒🛒🛒More tasks. More spins. More chances to win. 🏆🏆🏆\n\n"
+            "💙 Join Paisabase and try your luck today!🔜\n\n"
+            "https://wallet.paisa-base.com/register?inviteCode=phar6p"
+        ),
+        "final_b": (
+            "🎡 SPIN THE WHEEL & WIN BIG!\n\n"
+            "Every spin gives you a reward. Complete tasks to earn more spins.\n\n"
+            "🔝 100% WIN RATE – NO ONE LOSES!\n\n"
+            "Start now: https://wallet.paisa-base.com/register?inviteCode=phar6p"
+        ),
+    },
+    {
+        "name": "Upgrade Level",
+        "pairs": [
+            (
+                "🚀 Upgrade Your Level! Unlock more benefits with PaisaBase.",
+                "Standard members get 3.5% commission, Premium members get 4.3%!",
+            ),
+            (
+                "🏆 Premium Membership unlocks after ₹30,00,000 trade volume within 30 days.",
+                "Every order you complete brings you one step closer to Premium!",
+            ),
+            (
+                "📈 Reach Premium and unlock higher commission rates today!",
+                "Start growing your volume now – Premium is within reach.",
+            ),
+        ],
+        "final_a": (
+            "🚀 Upgrade Your Level. Unlock More Benefits! 🚀\n\n"
+            "https://wallet.paisa-base.com/register?inviteCode=phar6p\n\n"
+            "🙂Standard Member↗️\n"
+            "• Commission Rate: 3.5%🪙\n"
+            "• Perfect for getting started and growing your trading volume.🌈\n\n"
+            "▶️ Premium Member🏆\n"
+            "• Commission Rate: 4.3%📈\n"
+            "• Unlock after achieving ₹30,00,000 INR trade volume (excluding USDT) within 30 days.☄️\n\n"
+            "😎 Every order you complete brings you one step closer to Premium Membership.🪙\n\n"
+            "🛒 Start today. Grow your volume. Reach Premium🗺"
+        ),
+        "final_b": (
+            "💎 Premium Membership unlocks higher commissions!\n\n"
+            "📈 3.5% → 4.3% commission rate.\n\n"
+            "🏆 Achieve ₹30,00,000 trade volume in 30 days.\n\n"
+            "Start now: https://wallet.paisa-base.com/register?inviteCode=phar6p"
+        ),
+    },
+    {
+        "name": "Hiring Agents",
+        "pairs": [
+            (
+                "⚡️ WE ARE HIRING AGENTS & INFLUENCERS! Build your team and earn passive income.",
+                "Earn 0.3% from Level 1, 0.1% from Level 2 – no salary limit!",
+            ),
+            (
+                "💎 If your Team A deposits 1 Crore, you earn ₹30,000 commission.",
+                "If Team B deposits 1 Crore, you earn ₹10,000 – total ₹40,000 weekly!",
+            ),
+            (
+                "🤝 Invite friends, influencers, traders, and social media users to join your team.",
+                "Bigger team = bigger income. Start building your downline today!",
+            ),
+        ],
+        "final_a": (
+            "⚡️ WE ARE HIRING AGENTS & INFLUENCERS ⚡️\n\n"
+            "Build your own team and create a powerful passive income with PaisaBase! 👈\n\n"
+            "✔ Earn 0.3% commission from Level 1 team\n"
+            "✔ Earn 0.1% commission from Level 2 team\n"
+            "✔ No salary limit — bigger team = bigger income\n\n"
+            "🪧 Example:\n"
+            "✨ If your Team A deposits 1 Crore, you earn ₹30,000 commission.\n"
+            "✨ If your Team B deposits 1 Crore, you earn ₹10,000 commission.\n"
+            "✨ Total Weekly Commission = ₹40,000\n\n"
+            "Invite friends, influencers, traders, and social media users to join your team and grow together👍\n\n"
+            "📤Official link:https://wallet.paisa-base.com/register?inviteCode=phar6p"
+        ),
+        "final_b": (
+            "🤝 JOIN THE PAISABASE TEAM!\n\n"
+            "💰 Earn passive income with 2‑level commissions.\n\n"
+            "📈 No salary limit – the bigger your team, the more you earn.\n\n"
+            "Start building your team: https://wallet.paisa-base.com/register?inviteCode=phar6p"
+        ),
+    },
+    {
+        "name": "Why PaisaBase",
+        "pairs": [
+            (
+                "⚡️ Why Thousands Are Choosing PaisaBase? Personal transactions are NOT debited.",
+                "Set your own selling limit, buy via Mobikwik/Freecharge, sell in round figures.",
+            ),
+            (
+                "💳 Other app transactions are NOT debited – your money stays yours.",
+                "Sell tokens in round figures like 999.56 → 1000. Simple and transparent.",
+            ),
+            (
+                "📱 HR Contact @jetlee261 for any questions about PaisaBase.",
+                "They provide quick support and guide you through the process.",
+            ),
+        ],
+        "final_a": (
+            "⚡️Why Thousands Are Choosing Paisabase⚡️\n\n"
+            "📤 Official link: https://wallet.paisa-base.com/register?inviteCode=phar6p\n\n"
+            "➡️ Personal transactions are NOT debited.\n"
+            "➡️ Other app transactions are NOT debited.\n"
+            "➡️ Set Your Own Selling Limit.\n"
+            "➡️ Buying Tools Mobikwik and Freecharge.\n"
+            "➡️ Sell token in round figure 999.56 🔠 1000 ✅\n\n"
+            "💭\n\n"
+            "📱 HR Contact: 🎉@jetlee261"
+        ),
+        "final_b": (
+            "💎 PAISABASE – THE SMART CHOICE\n\n"
+            "✅ No hidden debits\n"
+            "✅ Set your own selling limit\n"
+            "✅ Buy via Mobikwik / Freecharge\n"
+            "✅ Sell in round figures\n\n"
+            "Join now: https://wallet.paisa-base.com/register?inviteCode=phar6p"
+        ),
+    },
+    {
+        "name": "USDT Rate Boost",
+        "pairs": [
+            (
+                "🔥🔥 BIG NEWS! USDT rate just got boosted! 1 USDT = 109 INR now!",
+                "💥 Exchange more, earn more: up to ₹15,000 bonus on 6000+ USDT!",
+            ),
+            (
+                "💰 100 USDT → ₹80 Bonus | 400 USDT → ₹400 Bonus | 1000 USDT → ₹1,200 Bonus",
+                "2000 USDT → ₹3,000 Bonus | 4000 USDT → ₹8,000 Bonus | 6000 USDT → ₹15,000 Bonus!",
+            ),
+            (
+                "🔜 Don't wait for tomorrow. Boost your USDT. Boost your earnings today!",
+                "Orders are moving fast, selling is instant, rewards are waiting for you!",
+            ),
+        ],
+        "final_a": (
+            "🔥🔥🔥BIG NEWS! USDT RATE JUST GOT BOOSTED! 🆕\n\n"
+            "🌈🔤🔤🔤🔤🔤🔤🔤🔤🔤 brings you a bigger earning opportunity! 🚀\n\n"
+            "🚨NOW 1 USDT = 109 INR 💎\n\n"
+            "💥 100 USDT → ₹80 Bonus 💥400 USDT → ₹400 Bonus 💥1,000 USDT → ₹1,200 Bonus 💥2,000 USDT → ₹3,000 Bonus 💥4,000 USDT → ₹8,000 Bonus 🏆6,000 USDT → ₹15,000 Bonus🛒\n\n"
+            "🤫The more USDT you exchange, the more bonus you unlock! 💰\n\n"
+            "🔝From ₹80 bonus to a massive ₹15,000 reward — your next big earning opportunity is here! 🎁\n\n"
+            "⚡Orders are moving fast 💱Selling is instant 🚩Rewards are waiting for you\n\n"
+            "🔜Don't wait for tomorrow. Boost your USDT. Boost your earnings. 💥\n\n"
+            "https://wallet.paisa-base.com/register?inviteCode=phar6p"
+        ),
+        "final_b": (
+            "💎 USDT RATE BOOSTED TO 109 INR!\n\n"
+            "💰 Earn up to ₹15,000 bonus on USDT exchanges!\n\n"
+            "📈 Exchange more. Earn more. Unlock bigger rewards.\n\n"
+            "Start now: https://wallet.paisa-base.com/register?inviteCode=phar6p"
+        ),
+    },
 ]
-
-
-# =========================================================
-# FINAL CALL‑TO‑ACTION MESSAGES (REPLACED)
-# =========================================================
-
-FINAL_CALL_A = (
-    "⚠️⚠️⚠️ USDT EXCHANGE REWARDS ARE LIVE! 🔄\n\n"
-    "🏆🏆🏆 **USDT Rate: 1️⃣0️⃣8️⃣🔤5️⃣**\n\n"
-    "📌Enjoy a competitive rate while unlocking extra exchange rewards!\n\n"
-    "**OFFICIAL LINK** : \n\n"
-    "https://wallet.paisa-base.com/register?inviteCode=phar6p\n\n"
-    "🔔🔔🔔**Exchange More, Earn More!**\n\n"
-    "☄️Your rewards are waiting:\n\n"
-    "> ⭐️ **100 USDT+ → ₹80 Reward**\n"
-    "> **⭐️ 400 USDT+ → ₹400 Reward**\n"
-    "> **⭐️ 1000 USDT+ → ₹1,200 Reward**\n"
-    "> **⭐️ 2000 USDT+ → ₹3,000 Reward**\n"
-    "> **⭐️ 4000 USDT+ → ₹8,000 Reward**\n"
-    "> **🏆 6000 USDT+ → ₹15,000 Reward**\n\n"
-    "✔️**Unlock up to ₹15,000 bonus reward with 6000+ USDT exchange!**\n"
-    "🤝 Invite your friends, build your team, and start working today!\n"
-    "📩 **DM for details & join now!**@jetlee261  ✅"
-)
-
-FINAL_CALL_B = (
-    "💬 That's an amazing offer! Contact @jetlee261 right now to get started.\n\n"
-    "Don't miss out on these rewards – exchange USDT and earn big! 🚀"
-)
 
 
 # =========================================================
@@ -421,14 +441,21 @@ async def run_session(
     )
 
     # -----------------------------------------------------
-    # SELECT MESSAGES
+    # SELECT A RANDOM CONTENT SET FOR THIS SESSION
+    # -----------------------------------------------------
+
+    content_set = random.choice(SESSION_CONTENT)
+    logger.info("Session topic: %s", content_set["name"])
+
+    # -----------------------------------------------------
+    # SELECT MESSAGES FROM THE CHOSEN SET
     # -----------------------------------------------------
 
     if test_mode:
 
         number_of_pairs = min(
-            3,
-            len(CONVERSATION_PAIRS),
+            2,
+            len(content_set["pairs"]),
         )
 
         wait_min = TEST_WAIT_MIN
@@ -436,16 +463,13 @@ async def run_session(
 
     else:
 
-        number_of_pairs = min(
-            6,
-            len(CONVERSATION_PAIRS),
-        )
+        number_of_pairs = len(content_set["pairs"])
 
         wait_min = NORMAL_WAIT_MIN
         wait_max = NORMAL_WAIT_MAX
 
     pairs = random.sample(
-        CONVERSATION_PAIRS,
+        content_set["pairs"],
         number_of_pairs,
     )
 
@@ -525,16 +549,18 @@ async def run_session(
         chat_id,
     )
 
+    # Bot A sends the main CTA
     await send_bot_a(
         chat_id,
-        FINAL_CALL_A,
+        content_set["final_a"],
     )
 
-    await asyncio.sleep(3)
+    await asyncio.sleep(5)
 
+    # Bot B sends the follow-up CTA
     await send_bot_b(
         chat_id,
-        FINAL_CALL_B,
+        content_set["final_b"],
     )
 
     # =====================================================
@@ -571,13 +597,13 @@ async def group_session_loop(
 
         /start
            ↓
-        Session 1
+        Session 1 (random content)
            ↓
         Final CTA/message
            ↓
         3-hour wait
            ↓
-        Session 2
+        Session 2 (random content)
            ↓
         Final CTA/message
            ↓
@@ -631,7 +657,7 @@ async def group_session_loop(
             )
 
             # -------------------------------------------------
-            # NEXT SESSION
+            # NEXT SESSION (new random content)
             # -------------------------------------------------
 
             logger.info(
@@ -771,7 +797,7 @@ async def stop_group_session(
 
 
 # =========================================================
-# /START
+# COMMAND HANDLERS
 # =========================================================
 
 async def start_command(
@@ -841,10 +867,6 @@ async def start_command(
             )
 
 
-# =========================================================
-# /STOP
-# =========================================================
-
 async def stop_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -876,10 +898,6 @@ async def stop_command(
                 "ℹ️ No active session cycle was found."
             )
 
-
-# =========================================================
-# /TEST
-# =========================================================
 
 async def test_command(
     update: Update,
@@ -975,10 +993,6 @@ async def test_command(
             )
 
 
-# =========================================================
-# /STATUS
-# =========================================================
-
 async def status_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -1021,10 +1035,6 @@ async def status_command(
         )
 
 
-# =========================================================
-# /ADDGROUP
-# =========================================================
-
 async def add_group_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -1064,10 +1074,6 @@ async def add_group_command(
             "Use /start when you want to begin the session cycle."
         )
 
-
-# =========================================================
-# /HELP
-# =========================================================
 
 async def help_command(
     update: Update,
@@ -1162,192 +1168,107 @@ def configure_application(
 
 
 # =========================================================
-# MAIN (Unchanged – your original sequential polling)
+# MAIN
 # =========================================================
 
 async def main():
-    """
-    Run both Telegram bots on the SAME asyncio event loop.
-    """
 
     global APP_A
     global APP_B
 
-    logger.info(
-        "========================================"
-    )
-
-    logger.info(
-        "STARTING TWO-BOT SYSTEM"
-    )
-
-    logger.info(
-        "========================================"
-    )
+    logger.info("========================================")
+    logger.info("STARTING TWO-BOT SYSTEM")
+    logger.info("========================================")
 
     # =====================================================
     # CREATE APPLICATIONS
     # =====================================================
 
-    APP_A = (
-        Application.builder()
-        .token(TOKEN_A)
-        .build()
-    )
+    APP_A = Application.builder().token(TOKEN_A).build()
+    APP_B = Application.builder().token(TOKEN_B).build()
 
-    APP_B = (
-        Application.builder()
-        .token(TOKEN_B)
-        .build()
-    )
-
-    configure_application(
-        APP_A
-    )
-
-    configure_application(
-        APP_B
-    )
+    configure_application(APP_A)
+    configure_application(APP_B)
 
     # =====================================================
     # INITIALIZE
     # =====================================================
 
-    logger.info(
-        "Initializing Bot A..."
-    )
-
+    logger.info("Initializing Bot A...")
     await APP_A.initialize()
 
-    logger.info(
-        "Initializing Bot B..."
-    )
-
+    logger.info("Initializing Bot B...")
     await APP_B.initialize()
 
     # =====================================================
     # REMOVE WEBHOOKS
     # =====================================================
 
-    logger.info(
-        "Removing Bot A webhook..."
-    )
+    logger.info("Removing Bot A webhook...")
+    await APP_A.bot.delete_webhook(drop_pending_updates=True)
 
-    await APP_A.bot.delete_webhook(
-        drop_pending_updates=True
-    )
-
-    logger.info(
-        "Removing Bot B webhook..."
-    )
-
-    await APP_B.bot.delete_webhook(
-        drop_pending_updates=True
-    )
+    logger.info("Removing Bot B webhook...")
+    await APP_B.bot.delete_webhook(drop_pending_updates=True)
 
     # =====================================================
     # START APPLICATIONS
     # =====================================================
 
-    logger.info(
-        "Starting Bot A..."
-    )
-
     await APP_A.start()
-
-    logger.info(
-        "Starting Bot B..."
-    )
-
     await APP_B.start()
 
+    logger.info("Both applications started.")
+
     # =====================================================
-    # START POLLING (sequential – your original logic)
+    # START POLLING CONCURRENTLY
     # =====================================================
 
-    logger.info(
-        "Starting Bot A polling..."
-    )
+    logger.info("Starting both bots polling concurrently...")
 
-    await APP_A.updater.start_polling(
-        allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=True,
-    )
+    try:
+        await asyncio.gather(
+            APP_A.updater.start_polling(
+                allowed_updates=Update.ALL_TYPES,
+                drop_pending_updates=True,
+            ),
+            APP_B.updater.start_polling(
+                allowed_updates=Update.ALL_TYPES,
+                drop_pending_updates=True,
+            ),
+        )
+    except asyncio.CancelledError:
+        logger.info("Polling cancelled.")
 
-    logger.info(
-        "Starting Bot B polling..."
-    )
-
-    await APP_B.updater.start_polling(
-        allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=True,
-    )
-
-    logger.info(
-        "========================================"
-    )
-
-    logger.info(
-        "BOTH BOTS ARE ONLINE"
-    )
-
-    logger.info(
-        "No session will start automatically."
-    )
-
-    logger.info(
-        "Use /start inside a group."
-    )
-
-    logger.info(
-        "========================================"
-    )
+    logger.info("========================================")
+    logger.info("BOTH BOTS ARE ONLINE")
+    logger.info("No session will start automatically.")
+    logger.info("Use /start inside a group.")
+    logger.info("========================================")
 
     # =====================================================
     # KEEP APPLICATION ALIVE
     # =====================================================
 
     try:
-
         await asyncio.Event().wait()
-
     except asyncio.CancelledError:
-
-        logger.info(
-            "Main application cancelled."
-        )
-
+        logger.info("Main application cancelled.")
     finally:
-
-        logger.info(
-            "Beginning shutdown..."
-        )
+        logger.info("Beginning shutdown...")
 
         # =================================================
         # STOP GROUP TASKS
         # =================================================
 
-        active_tasks = list(
-            GROUP_SESSION_TASKS.values()
-        )
-
-        logger.info(
-            "Stopping %s active group session(s).",
-            len(active_tasks),
-        )
+        active_tasks = list(GROUP_SESSION_TASKS.values())
+        logger.info("Stopping %s active group session(s).", len(active_tasks))
 
         for task in active_tasks:
-
             if not task.done():
-
                 task.cancel()
 
         if active_tasks:
-
-            await asyncio.gather(
-                *active_tasks,
-                return_exceptions=True,
-            )
+            await asyncio.gather(*active_tasks, return_exceptions=True)
 
         GROUP_SESSION_TASKS.clear()
 
@@ -1355,28 +1276,12 @@ async def main():
         # STOP POLLING
         # =================================================
 
-        if (
-            APP_A
-            and APP_A.updater
-            and APP_A.updater.running
-        ):
-
-            logger.info(
-                "Stopping Bot A polling..."
-            )
-
+        if APP_A and APP_A.updater and APP_A.updater.running:
+            logger.info("Stopping Bot A polling...")
             await APP_A.updater.stop()
 
-        if (
-            APP_B
-            and APP_B.updater
-            and APP_B.updater.running
-        ):
-
-            logger.info(
-                "Stopping Bot B polling..."
-            )
-
+        if APP_B and APP_B.updater and APP_B.updater.running:
+            logger.info("Stopping Bot B polling...")
             await APP_B.updater.stop()
 
         # =================================================
@@ -1384,11 +1289,9 @@ async def main():
         # =================================================
 
         if APP_A:
-
             await APP_A.stop()
 
         if APP_B:
-
             await APP_B.stop()
 
         # =================================================
@@ -1396,24 +1299,14 @@ async def main():
         # =================================================
 
         if APP_A:
-
             await APP_A.shutdown()
 
         if APP_B:
-
             await APP_B.shutdown()
 
-        logger.info(
-            "========================================"
-        )
-
-        logger.info(
-            "TWO-BOT SYSTEM SHUTDOWN COMPLETE"
-        )
-
-        logger.info(
-            "========================================"
-        )
+        logger.info("========================================")
+        logger.info("TWO-BOT SYSTEM SHUTDOWN COMPLETE")
+        logger.info("========================================")
 
 
 # =========================================================
@@ -1423,20 +1316,8 @@ async def main():
 if __name__ == "__main__":
 
     try:
-
-        asyncio.run(
-            main()
-        )
-
+        asyncio.run(main())
     except KeyboardInterrupt:
-
-        logger.info(
-            "Bot stopped manually."
-        )
-
+        logger.info("Bot stopped manually.")
     except Exception as error:
-
-        logger.exception(
-            "Fatal error: %s",
-            error,
-        )
+        logger.exception("Fatal error: %s", error)
