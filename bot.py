@@ -60,7 +60,6 @@ GROUP_SESSION_TASKS = {}
 # =========================================================
 # SESSION CONTENT POOL (7 Different Session Types)
 # =========================================================
-# Replace the image URLs below with your actual GitHub raw links.
 
 SESSION_CONTENT = [
     {
@@ -242,8 +241,8 @@ SESSION_CONTENT = [
     # =====================================================
     {
         "name": "Large Orders",
-        "image_url_a": "https://raw.githubusercontent.com/yourusername/yourrepo/main/order1.jpg",
-        "image_url_b": "https://raw.githubusercontent.com/yourusername/yourrepo/main/order2.jpg",
+        "image_url_a": "https://raw.githubusercontent.com/oluwaseunalli32-lang/dachatterybot/main/order1.jpg",
+        "image_url_b": "https://raw.githubusercontent.com/oluwaseunalli32-lang/dachatterybot/main/order2.jpg",
         "pairs": [
             (
                 "🔥🔥🔥 There are many large orders—grab them now! The selling is super fast!",
@@ -265,7 +264,7 @@ SESSION_CONTENT = [
     # =====================================================
     {
         "name": "Extra Rewards",
-        "image_url_a": "https://raw.githubusercontent.com/yourusername/yourrepo/main/rewards.jpg",
+        "image_url_a": "https://raw.githubusercontent.com/oluwaseunalli32-lang/dachatterybot/main/rewards.jpg",
         "image_url_b": None,
         "pairs": [
             (
@@ -396,7 +395,6 @@ async def run_session(chat_id, test_mode=False):
     pairs = random.sample(content_set["pairs"], number_of_pairs)
 
     for index, (message_a, message_b) in enumerate(pairs):
-        # Get image URLs if they exist
         img_a = content_set.get("image_url_a")
         img_b = content_set.get("image_url_b")
 
